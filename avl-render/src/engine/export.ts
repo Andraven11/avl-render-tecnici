@@ -5,6 +5,7 @@ import { CONTROLLER_DB } from "./controller-db";
 import { type SceneParams } from "./scene-builder";
 import {
   renderFrontale,
+  renderPosteriore,
   renderLaterale,
   renderPianta,
   type RenderMeta,
@@ -89,11 +90,14 @@ function buildPScript(project: Project): string {
 /** Genera l'HTML completo del viewer con i dati del progetto. Ritorna anche i PNG per l'export. */
 export async function buildViewerHtml(
   project: Project
-): Promise<{ html: string; pngs: { frontale: string; laterale: string; pianta: string } }> {
+): Promise<{ html: string; pngs: { frontale: string; posteriore: string; laterale: string; pianta: string } }> {
   const templateUrl = `${window.location.origin}/viewer-template.html`;
-  const res = await fetch(templateUrl);
+  let res = await fetch(templateUrl);
   if (!res.ok) {
-    throw new Error(`Template non trovato (${res.status}): ${templateUrl}`);
+    res = await fetch("/viewer-template.html");
+  }
+  if (!res.ok) {
+    throw new Error(`Template non trovato (${res.status}). Verifica che public/viewer-template.html esista.`);
   }
   let html = await res.text();
 
@@ -151,11 +155,21 @@ export async function buildViewerHtml(
   const pngs = generateTechnicalPngs(project, meta);
 
   let threeJs = "";
-  try {
-    const r = await fetch("https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js");
-    if (r.ok) threeJs = await r.text();
-  } catch {
-    console.warn("Three.js non scaricato");
+  const cdnUrls = [
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+    "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js",
+    "https://unpkg.com/three@0.128.0/build/three.min.js",
+  ];
+  for (const url of cdnUrls) {
+    try {
+      const r = await fetch(url);
+      if (r.ok) {
+        threeJs = await r.text();
+        break;
+      }
+    } catch {
+      continue;
+    }
   }
   if (threeJs) {
     const safe = threeJs.replace(/<\/script>/gi, "<\\/script>");
@@ -167,8 +181,8 @@ export async function buildViewerHtml(
 
   html = html.replace(/<title>.*?<\/title>/, `<title>LEDWALL ${projectTitle} — Stand Tecnico AVL</title>`);
 
-  const panelRegex = /<div id="panel-left">[\s\S]*?<\/div>/;
-  html = html.replace(panelRegex, `<div id="panel-left">${panelContent}\n    </div>`);
+  const panelRegex = /<div id="panel-left">[\s\S]*<\/div>\s*<div class="main">/;
+  html = html.replace(panelRegex, `<div id="panel-left">${panelContent}\n    </div>\n\n    <div class="main">`);
 
   const pStart = html.indexOf("const P = {");
   const pEnd = html.indexOf("P.TUBE_Y = [");
@@ -182,6 +196,7 @@ export async function buildViewerHtml(
   html = html.replace(/AVL_LEDWALL5x2_/g, `AVL_${escapeHtml(project.event.projectName).replace(/\s+/g, "_")}_`);
 
   html = html.replace("{{PNG_FRONTALE}}", pngs.frontale);
+  html = html.replace("{{PNG_POSTERIORE}}", pngs.posteriore);
   html = html.replace("{{PNG_LATERALE}}", pngs.laterale);
   html = html.replace("{{PNG_PIANTA}}", pngs.pianta);
 
@@ -192,7 +207,7 @@ export async function buildViewerHtml(
 function generateTechnicalPngs(
   project: Project,
   meta: RenderMeta
-): { frontale: string; laterale: string; pianta: string } {
+): { frontale: string; posteriore: string; laterale: string; pianta: string } {
   const p = projectToP(project);
   const trussDepth = p.IS_FLAT ? p.QX : (p.QX_DEPTH ?? p.QX);
   const Z_TF = p.Z_LED_BACK + p.Z_GAP;
@@ -229,11 +244,13 @@ function generateTechnicalPngs(
   const basePlate = project.structure.legs?.basePlate ?? true;
 
   const cvFront = document.createElement("canvas");
+  const cvPost = document.createElement("canvas");
   const cvSide = document.createElement("canvas");
   const cvTop = document.createElement("canvas");
 
   try {
     renderFrontale(cvFront, P, meta, basePlate);
+    renderPosteriore(cvPost, P, meta, basePlate);
     renderLaterale(cvSide, P, meta, basePlate);
     renderPianta(cvTop, P, meta, basePlate);
   } catch (e) {
@@ -243,6 +260,7 @@ function generateTechnicalPngs(
 
   return {
     frontale: cvFront.toDataURL("image/png"),
+    posteriore: cvPost.toDataURL("image/png"),
     laterale: cvSide.toDataURL("image/png"),
     pianta: cvTop.toDataURL("image/png"),
   };
@@ -253,15 +271,18 @@ function downloadHtmlFallback(html: string, projectName: string): void {
   const url = URL.createObjectURL(blob);
   const filename = `${projectName.replace(/\s+/g, "_")}_viewer.html`;
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.rel = "noopener";
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 500);
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 }
 
 export async function exportProject(project: Project): Promise<void> {
@@ -271,7 +292,7 @@ export async function exportProject(project: Project): Promise<void> {
   }
 
   let html: string;
-  let pngs: { frontale: string; laterale: string; pianta: string };
+  let pngs: { frontale: string; posteriore: string; laterale: string; pianta: string };
   try {
     const result = await buildViewerHtml(project);
     html = result.html;
@@ -303,13 +324,27 @@ export async function exportProject(project: Project): Promise<void> {
       projectName,
       htmlContent: html,
       pngFrontale: pngs.frontale || null,
+      pngPosteriore: pngs.posteriore || null,
       pngLaterale: pngs.laterale || null,
       pngPianta: pngs.pianta || null,
     });
 
     alert(`Export completato in:\n${result}`);
-  } catch {
-    downloadHtmlFallback(html, projectName);
-    alert("Viewer HTML scaricato. Per export con PNG in cartella, avvia l'app con: npm run tauri dev");
+  } catch (e) {
+    console.warn("Export Tauri non disponibile, fallback download:", e);
+    try {
+      downloadHtmlFallback(html, projectName);
+      alert("Viewer HTML scaricato. Per export con PNG in cartella, avvia: npm run tauri dev");
+    } catch (fallbackErr) {
+      console.error("Fallback download fallito:", fallbackErr);
+      const w = window.open("", "_blank");
+      if (w) {
+        w.document.write(html);
+        w.document.close();
+        alert("Viewer aperto in nuova scheda. Usa Salva con nome (Ctrl+S) per salvarlo.");
+      } else {
+        alert("Impossibile scaricare. Abilita i popup o avvia l'app con: npm run tauri dev");
+      }
+    }
   }
 }
