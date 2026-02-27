@@ -646,6 +646,17 @@ npm run smoke       # Smoke test (build completo)
 
 ---
 
+## 10.2 Workflow sviluppo — MCP e indici
+
+| Strumento | Uso | Note |
+|-----------|-----|------|
+| **Server MCP** | Operazioni remote (GitHub, Firebase, Supabase) | Preferire MCP invece di comandi shell |
+| **Indici salvati** | Doc esterna (@Tauri, @Firebase, ecc.) | Consultare prima di modifiche API |
+| **Git via MCP** | `create_or_update_file`, `push_files` | Se `git push` da terminale non restituisce output |
+| **Sync locale/remoto** | `git fetch origin` + `git reset --hard origin/master` | Dopo push via MCP, allineare repo locale |
+
+---
+
 ## 11. Comandi Tauri (Rust ↔ JS)
 
 - **Dialog** (`tauri-plugin-dialog`): `open({ directory: true })` per scegliere cartella export
