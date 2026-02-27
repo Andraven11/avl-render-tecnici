@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LEDWALL STAND LEDWALL 5×2m — Stand Tecnico AVL</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    #panel-left {
+      width: 280px;
+      padding: 16px;
+      background: #16213e;
+      border-right: 1px solid #0f3460;
+      font-size: 12px;
+      overflow-y: auto;
+    }
+
+    #panel-left .lbl {
+      color: #8892b0;
+    }
+
+    #panel-left .val {
+      color: #e0e0e0;
+    }
+
+    #panel-left .sep {
+      height: 1px;
+      background: #0f3460;
+      margin: 8px 0;
+    }
+
+    #panel-left h2 {
+      color: #00d9ff;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 2px;
+      padding: 12px 12px 0;
+      background: #16213e;
+      border-bottom: 1px solid #0f3460;
+    }
+
+    .tabs button {
+      padding: 10px 20px;
+      background: #0f3460;
+      border: 1px solid #0f3460;
+      border-bottom: none;
+      color: #8892b0;
+      cursor: pointer;
+      font-size: 13px;
+      border-radius: 8px 8px 0 0;
+    }
+
+    .tabs button:hover {
+      color: #e0e0e0;
+      background: #1a237e;
+    }
+
+    .tabs button.active {
+      background: #1a1a2e;
+      color: #00d9ff;
+      border-color: #0f3460;
+      margin-bottom: -1px;
+    }
+
+    .tab-content {
+      flex: 1;
+      padding: 16px;
+      overflow: auto;
+      background: #1a1a2e;
+    }
+
+    .tab-pane {
+      display: none;
+      height: 100%;
+      min-height: 400px;
+    }
+
+    .tab-pane.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    #view3d {
+      width: 100%;
+      flex: 1;
+      min-height: 450px;
+      background: #eef1f6;
+      border-radius: 8px;
+    }
+
+    .drawing-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
+    }
+
+    .drawing-container img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .footer {
+      font-size: 11px;
+      color: #8892b0;
+      padding: 8px 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <div id="panel-left">
+      <h2>▸ DATI TECNICI</h2>
+      <span class="lbl">Progetto: </span><span class="val">—</span><br>
+      <div class="sep"></div>
+    </div>
+    <div class="main">
+      <div class="tabs">
+        <button data-tab="3d" class="active">3D</button>
+        <button data-tab="frontale">Frontale</button>
+        <button data-tab="laterale">Laterale</button>
+        <button data-tab="pianta">Pianta</button>
+      </div>
+      <div class="tab-content">
+        <div id="pane-3d" class="tab-pane active">
+          <div id="view3d"></div>
+        </div>
+        <div id="pane-frontale" class="tab-pane">
+          <div class="drawing-container">
+            <img src="{{PNG_FRONTALE}}" alt="Vista frontale" />
+          </div>
+        </div>
+        <div id="pane-laterale" class="tab-pane">
+          <div class="drawing-container">
+            <img src="{{PNG_LATERALE}}" alt="Vista laterale" />
+          </div>
+        </div>
+        <div id="pane-pianta" class="tab-pane">
+          <div class="drawing-container">
+            <img src="{{PNG_PIANTA}}" alt="Vista pianta" />
+          </div>
+        </div>
+      </div>
+      <div class="footer">AVL_LEDWALL5x2_ — 02/2026</div>
+    </div>
+  </div>
+  <script src="three.min.js"></script>
+  <script>
+    const P = {
+      LED_W: 5, LED_H: 2, LED_H_ACTIVE: 1.5, LED_W_ACTIVE: 5,
+      CAB: 0.5, CAB_W: 0.5, CAB_H: 0.5, CAB_D: 0.08, CAB_ROWS: 4, CAB_COLS: 10,
+      DEAD_ROWS: 0, DEAD_COLS: 0,
+      BOT_BAR: 0.1,
+      LEG_X: [0.5, 2.5, 5, 7.5, 9.5],
+      LEG_H: 2, LEG_ARM: 0.42,
+      QX: 0.29, QX_DEPTH: 0.29, TRUSS_DEPTH: 0.29, IS_FLAT: false,
+      BASE_PLATE_W: 0.33, BASE_PLATE_D: 0.48,
+      CHORD_R: 0.025, DIAG_R: 0.009,
+      Z_LED_BACK: 0.08, Z_GAP: 0.15,
+      TUBE_R: 0.025,
+    };
+    P.Z_TF = P.Z_LED_BACK + P.Z_GAP;
+    P.Z_TC = P.Z_TF + (P.TRUSS_DEPTH || P.QX_DEPTH) / 2;
+    P.Z_TB = P.Z_TF + (P.TRUSS_DEPTH || P.QX_DEPTH);
+    P.Z_ARM_C = P.Z_TB + P.LEG_ARM / 2;
+    P.QH = P.IS_FLAT ? P.QX_DEPTH / 2 : P.QX / 2;
+    P.Z_TUBE = P.Z_TF - 0.03;
+    P.TUBE_Y = [0.5, 1.0, 1.5];
+
+    document.querySelectorAll('.tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    const container = document.getElementById('view3d');
+    if (container && typeof THREE !== 'undefined') {
+      const CAB_W = P.CAB_W || P.CAB, CAB_H = P.CAB_H || P.CAB;
+      const DEAD_ROWS = P.DEAD_ROWS || 0, DEAD_COLS = P.DEAD_COLS || 0;
+      const isFlat = P.IS_FLAT || false;
+      const QH = P.QH || P.QX / 2;
+      const trussDepth = isFlat ? P.QX : (P.QX_DEPTH || P.QX);
+      const zC = P.Z_TC || P.Z_TF + trussDepth / 2;
+      const Z_TUBE = P.Z_TUBE || P.Z_TF - 0.03;
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xeef1f6);
+      const W = container.clientWidth || 640;
+      const H = container.clientHeight || 400;
+      const camera = new THREE.PerspectiveCamera(42, W / H, 0.01, 100);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(W, H);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+      const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+      sun.position.set(6, 10, 8);
+      sun.castShadow = true;
+      sun.shadow.mapSize.width = 1024;
+      sun.shadow.mapSize.height = 1024;
+      scene.add(sun);
+      scene.add(new THREE.DirectionalLight(0xddeeff, 0.35).position.set(-4, 3, -5));
+      scene.add(new THREE.DirectionalLight(0xffffff, 0.3).position.set(0, 5, -8));
+
+      const floorGeo = new THREE.PlaneGeometry(20, 20);
+      const floorMat = new THREE.ShadowMaterial({ opacity: 0.15 });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set(P.LED_W / 2, 0, 0.4);
+      floor.receiveShadow = true;
+      scene.add(floor);
+      scene.add(new THREE.GridHelper(14, 28, 0xbbbbbb, 0xdddddd).position.set(P.LED_W / 2, 0, 0.4));
+
+      const MAT = {
+        chord: new THREE.MeshStandardMaterial({ color: isFlat ? 0x708090 : 0x607090, metalness: 0.7, roughness: 0.3 }),
+        diagLine: new THREE.LineBasicMaterial({ color: isFlat ? 0x556070 : 0x455a64 }),
+        ledON: new THREE.MeshStandardMaterial({ color: 0x1a6fce, emissive: 0x0a2a6a, metalness: 0.1, roughness: 0.6 }),
+        ledOFF: new THREE.MeshStandardMaterial({ color: 0x2c3e50, metalness: 0.2, roughness: 0.7 }),
+        frame: new THREE.LineBasicMaterial({ color: 0x000000 }),
+        bar: new THREE.MeshStandardMaterial({ color: 0x78909c, metalness: 0.5, roughness: 0.4 }),
+        tube: new THREE.MeshStandardMaterial({ color: 0xc0392b, metalness: 0.6, roughness: 0.35 }),
+        clamp: new THREE.MeshStandardMaterial({ color: 0x27ae60, metalness: 0.5, roughness: 0.4 }),
+        base: new THREE.MeshStandardMaterial({ color: 0x444455, metalness: 0.4, roughness: 0.5 }),
+      };
+
+      function cyl(r, h, mat, x, y, z, axis) {
+        axis = axis || 'y';
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, r > 0.02 ? 12 : 8), mat);
+        if (axis === 'x') m.rotation.z = Math.PI / 2;
+        if (axis === 'z') m.rotation.x = Math.PI / 2;
+        m.position.set(x, y, z);
+        m.castShadow = true;
+        scene.add(m);
+      }
+      function bx(w, h, d, mat, x, y, z) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        m.position.set(x, y, z);
+        m.castShadow = m.receiveShadow = true;
+        scene.add(m);
+      }
+      function lineSegs(pts, mat) {
+        const geo = new THREE.BufferGeometry().setFromPoints(pts.map(p => new THREE.Vector3(p[0], p[1], p[2])));
+        scene.add(new THREE.LineSegments(geo, mat));
+      }
+
+      function makeLegQX30(lx) {
+        const y1 = P.LEG_H;
+        [[lx - QH, zC - QH], [lx + QH, zC - QH], [lx - QH, zC + QH], [lx + QH, zC + QH]].forEach(([x, z]) =>
+          cyl(P.CHORD_R, y1, MAT.chord, x, y1 / 2, z));
+        const bays = 4, bH = y1 / bays;
+        const diagPts = [];
+        for (let i = 0; i <= bays; i++) {
+          const y = i * bH;
+          diagPts.push([lx - QH, y, zC - QH], [lx + QH, y, zC - QH], [lx - QH, y, zC + QH], [lx + QH, y, zC + QH],
+            [lx - QH, y, zC - QH], [lx - QH, y, zC + QH], [lx + QH, y, zC - QH], [lx + QH, y, zC + QH]);
+          if (i < bays) {
+            const yn = (i + 1) * bH;
+            diagPts.push([lx - QH, y, zC - QH], [lx + QH, yn, zC - QH], [lx + QH, y, zC - QH], [lx - QH, yn, zC - QH]);
+            diagPts.push([lx - QH, y, zC + QH], [lx + QH, yn, zC + QH], [lx + QH, y, zC + QH], [lx - QH, yn, zC + QH]);
+          }
+        }
+        lineSegs(diagPts, MAT.diagLine);
+        const zAF = P.Z_TB, zAB = P.Z_TB + P.LEG_ARM, zAM = (zAF + zAB) / 2;
+        [[lx - QH, P.CHORD_R], [lx + QH, P.CHORD_R], [lx - QH, P.QX - P.CHORD_R], [lx + QH, P.QX - P.CHORD_R]].forEach(([x, y]) =>
+          cyl(P.CHORD_R, P.LEG_ARM, MAT.chord, x, y, zAM, 'z'));
+        bx(P.QX + 0.04, 0.015, P.LEG_ARM + 0.06, MAT.base, lx, 0.008, zAM);
+      }
+
+      function makeLegFX30(lx) {
+        const y1 = P.LEG_H, halfW = P.QX_DEPTH / 2, zF = P.Z_TF, zB = P.Z_TB;
+        const xL = lx - halfW, xR = lx + halfW;
+        [[xL, zF], [xR, zF], [xL, zB], [xR, zB]].forEach(([x, z]) => cyl(P.CHORD_R, y1, MAT.chord, x, y1 / 2, z));
+        const bays = 4, bH = y1 / bays;
+        const diagPts = [];
+        for (let i = 0; i < bays; i++) {
+          const y = i * bH, yn = (i + 1) * bH;
+          diagPts.push([xL, y, zF], [xR, yn, zB], [xR, y, zB], [xL, yn, zF], [xR, y, zF], [xL, yn, zB], [xL, y, zB], [xR, yn, zF]);
+        }
+        lineSegs(diagPts, MAT.diagLine);
+      }
+
+      const makeLeg = isFlat ? makeLegFX30 : makeLegQX30;
+
+      if (P.BOT_BAR > 0) bx(P.LED_W, P.BOT_BAR, 0.12, MAT.bar, P.LED_W / 2, P.BOT_BAR / 2, 0);
+
+      for (let col = 0; col < P.CAB_COLS; col++) {
+        for (let row = 0; row < P.CAB_ROWS; row++) {
+          const x = CAB_W / 2 + col * CAB_W;
+          const y = P.BOT_BAR + CAB_H / 2 + row * CAB_H;
+          const mat = (row < DEAD_ROWS || col < DEAD_COLS || col >= P.CAB_COLS - DEAD_COLS) ? MAT.ledOFF : MAT.ledON;
+          bx(CAB_W - 0.005, CAB_H - 0.005, P.CAB_D, mat, x, y, 0);
+          const fr = new THREE.LineSegments(
+            new THREE.EdgesGeometry(new THREE.BoxGeometry(CAB_W - 0.005, CAB_H - 0.005, P.CAB_D)), MAT.frame);
+          fr.position.set(x, y, 0);
+          scene.add(fr);
+        }
+      }
+
+      if (P.LEG_X.length > 0) P.LEG_X.forEach(lx => makeLeg(lx));
+
+      if (P.LEG_X.length >= 2 && P.TUBE_Y.length > 0) {
+        const spanX = P.LEG_X[P.LEG_X.length - 1] - P.LEG_X[0];
+        const xMid = (P.LEG_X[0] + P.LEG_X[P.LEG_X.length - 1]) / 2;
+        P.TUBE_Y.forEach(ty => cyl(P.TUBE_R, spanX, MAT.tube, xMid, ty, Z_TUBE, 'x'));
+        P.LEG_X.forEach(lx => P.TUBE_Y.forEach(ty => {
+          bx(0.065, 0.065, 0.1, MAT.clamp, lx, ty, Z_TUBE);
+          bx(0.065, 0.065, 0.1, MAT.clamp, lx, ty, Z_TUBE - 0.06);
+        }));
+      }
+
+      const tgt = new THREE.Vector3(P.LED_W / 2, (P.BOT_BAR + P.LED_H) / 2, zC);
+      const wallDiag = Math.sqrt(P.LED_W ** 2 + (P.BOT_BAR + P.LED_H) ** 2);
+      const fovRad = camera.fov * Math.PI / 180;
+      const r = Math.max(2, Math.min(22, wallDiag / (2 * Math.tan(fovRad / 2)) * 1.4));
+      let sph = { theta: -0.6, phi: 1.05, r }, drag = false, rDrag = false, prev = { x: 0, y: 0 };
+
+      function cam() {
+        camera.position.set(
+          tgt.x + sph.r * Math.sin(sph.phi) * Math.sin(sph.theta),
+          tgt.y + sph.r * Math.cos(sph.phi),
+          tgt.z + sph.r * Math.sin(sph.phi) * Math.cos(sph.theta));
+        camera.lookAt(tgt);
+      }
+      cam();
+
+      container.addEventListener('mousedown', e => { drag = true; rDrag = e.button === 2; prev = { x: e.clientX, y: e.clientY }; });
+      container.addEventListener('contextmenu', e => e.preventDefault());
+      window.addEventListener('mouseup', () => drag = false);
+      window.addEventListener('mousemove', e => {
+        if (!drag) return;
+        const dx = (e.clientX - prev.x) * 0.005, dy = (e.clientY - prev.y) * 0.005;
+        if (rDrag) { tgt.x -= dx * 1.5; tgt.y += dy * 1.5; }
+        else { sph.theta -= dx; sph.phi = Math.max(0.05, Math.min(Math.PI - 0.05, sph.phi + dy)); }
+        prev = { x: e.clientX, y: e.clientY };
+        cam();
+      });
+      container.addEventListener('wheel', e => {
+        sph.r = Math.max(1.5, Math.min(22, sph.r + e.deltaY * 0.005));
+        cam();
+      });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      const ro = new ResizeObserver(() => {
+        const nW = container.clientWidth || 640, nH = container.clientHeight || 400;
+        camera.aspect = nW / nH;
+        camera.updateProjectionMatrix();
+        renderer.setSize(nW, nH);
+      });
+      ro.observe(container);
+    }
+  </script>
+</body>
+
+</html>

@@ -4,19 +4,29 @@ import { exportProject } from "@/engine/export";
 export function ExportPanel() {
   const { project } = useProjectStore();
 
-  async function handleExport() {
-    await exportProject(project);
+  function handleExport() {
+    exportProject(project).catch((e) => {
+      console.error("Export error:", e);
+      alert(`Errore export: ${e instanceof Error ? e.message : String(e)}`);
+    });
   }
 
-  async function handleSave() {
-    const data = JSON.stringify(project, null, 2);
-    const blob = new Blob([data], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${project.event.projectName.replace(/\s+/g, "_")}_progetto.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  function handleSave() {
+    try {
+      const data = JSON.stringify(project, null, 2);
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${project.event.projectName.replace(/\s+/g, "_")}_progetto.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Salva progetto error:", e);
+      alert(`Errore salvataggio: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   function handleLoad() {

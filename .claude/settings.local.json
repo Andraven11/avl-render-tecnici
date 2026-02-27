@@ -4,7 +4,8 @@
       "Bash(npx tsc --noEmit)",
       "Bash(npm run build)",
       "Bash(xargs ls -la)",
-      "mcp__filesystem__directory_tree"
+      "mcp__filesystem__directory_tree",
+      "Bash(npx vite build)"
     ]
   }
 }
