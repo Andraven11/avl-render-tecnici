@@ -2,8 +2,13 @@
 
 ## Modifiche recenti
 
+### Viewer export (4 viste, zoom, UI)
+- **4 viste tecniche**: Frontale (faccia LED), Posteriore (struttura), Laterale, Pianta
+- **Pulsante download**: spostato in alto a destra nell'header di ogni vista
+- **Zoom**: pulsanti +/− per ogni vista (0.5×–3×)
+- **Export cartella**: salva `viewer.html` + 4 PNG (FRONTALE, POSTERIORE, LATERALE, PIANTA)
+
 ### Export e struttura
-- **Export cartella**: dialog per scegliere cartella; crea sottocartella con nome evento; salva `viewer.html` + 3 PNG (FRONTALE, LATERALE, PIANTA)
 - **Gambe**: massimo = floor(width_mm/500), 1 gamba ogni 500mm (giunzioni)
 - **Date evento**: campi Da–A per setup, evento e smontaggio
 
