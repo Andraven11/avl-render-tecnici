@@ -1,0 +1,1 @@
+{"name":"render-tecnici","private":true,"scripts":{"dev":"npm run dev --prefix avl-render","build":"npm run build --prefix avl-render","tauri":"npm run tauri --prefix avl-render","tauri:dev":"npm run tauri dev --prefix avl-render","lint":"npm run lint --prefix avl-render"}}
