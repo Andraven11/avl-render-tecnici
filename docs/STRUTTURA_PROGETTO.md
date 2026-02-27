@@ -55,10 +55,16 @@ render tecnici/
 | Installer MSI | `avl-render/src-tauri/target/release/bundle/msi/` |
 | Installer NSIS | `avl-render/src-tauri/target/release/bundle/nsis/` |
 
-L’exe è **portable**: nessuna installazione, eseguibile su Windows 10/11 con WebView2.
+L'exe è **portable**: nessuna installazione, eseguibile su Windows 10/11 con WebView2.
 
 ## Cartelle da ignorare (git)
 
 - `node_modules/`
 - `avl-render/dist/`
 - `avl-render/src-tauri/target/`
+
+## Workflow MCP e indici
+
+- **MCP:** Usare i server MCP (GitHub, Firebase, ecc.) per operazioni remote.
+- **Indici:** Consultare la doc indicizzata (@Tauri, @Firebase) prima di modifiche API.
+- **Git:** Preferire MCP GitHub per commit/push; allineare locale con `git fetch` + `git reset --hard origin/master` dopo push via MCP.
