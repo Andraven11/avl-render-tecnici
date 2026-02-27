@@ -1,0 +1,60 @@
+---
+description: Standard hardware LEDwall, truss QX30 reale, basi e mapping video
+globs: "**/*.html,**/*.ts,**/*.tsx"
+alwaysApply: false
+---
+
+# Standard Hardware & Costruttivi LEDwall
+
+## Moduli LED (Cabinet)
+- Dimensioni standard: **500×500 mm** o 500×1000 mm
+- Pixel pitch: **2.6 mm** (Uniview) o 3.9 mm
+- Profondità cabinet: **80 mm**
+- Peso: ~14 kg/cabinet | Consumo: ~150 W/cabinet
+
+## Truss Prolyte X30V (QX30)
+- Sezione: **290 × 290 mm**
+- Corde (chord tubes): **Ø51 mm × 2 mm parete**, materiale EN AW 6082 T6
+- Diagonali: **Ø16 mm × 2 mm parete**
+- Bracing: K-type, un nodo ogni 500 mm
+- Sistema giunto: CCS6 conico
+- In 3D: 4 cilindri Ø51 ai 4 angoli + LineSegments per bracing
+- Colore rendering: **#607090** (corde), **#455a64** (diagonali)
+
+## Truss Prolyte FX30 (Piatta/Ladder)
+- Sezione: **220 × 30 mm** (di taglio)
+- Corde: **Ø50 mm × 2 mm parete**
+- Diagonali: **Ø20 mm × 2 mm parete**
+- Peso: ~2.8 kg/m
+- Piastra base: **500 × 700 mm** nera
+- Colore rendering: **#708090** (corde), **#556070** (diagonali)
+
+## Struttura Americana a L (Ground Support)
+- Verticale: QX30 da 0 a 2000 mm (o altezza richiesta)
+- Braccio orizzontale: QX30 a terra, **420 mm** (lato corto), verso retro
+- La sezione trasversale del braccio è anch'essa 290×290 mm
+- Il braccio parte dal RETRO della colonna verticale (Z_back) e si estende indietro
+- Piastra base sotto il braccio
+
+## Posizionamento struttura
+- **Bottom Bar:** 100 mm, a terra (Y=0→100). Ledwall parte da Y=100
+- **Gap LED→Truss:** 150 mm (retro cabinet a fronte truss)
+- **Z_fronte_truss = LED_depth(80) + gap(150) = 230 mm** dal fronte LED
+- **Tubi collegamento:** Ø50 mm, sulla FACCIA FRONTE della truss
+- **Doppio aliscaff** ad ogni giunzione tubo↔truss
+
+## Gambe standard
+- 2–maxLegs gambe a L (maxLegs = floor(width_mm/500), 1 ogni 500mm)
+- Offset da bordi: **500 mm** (interno)
+- Interasse gambe: calcolato automaticamente
+- Altezza gamba: solitamente **2000 mm** (uguale all'altezza totale del LED fisico)
+
+## Tubi orizzontali (collegamento)
+- 3 tubi Ø50 mm che legano le 4 gambe sulla faccia fronte della truss
+- Quote Y indicative: bottom_bar + 350mm, centro, top-250mm
+
+## Mapping Video
+- **Dead Zone:** Prima fila di cabinet (500 mm) montata ma SPENTA
+- Indicare con hatch rosso e `setLineDash([5,3])` nei disegni
+- **Offset Y:** Calcolare offset pixel dal basso per Novastar/Brompton
+- Risoluzione attiva: `(LED_W/2.6) × (LED_H_active/2.6)` arrotondato a multiplo di cabinet
