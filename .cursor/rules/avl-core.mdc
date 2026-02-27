@@ -26,4 +26,9 @@ alwaysApply: true
 - `avl-render/src-tauri/target/release/avl-render-tecnici.exe` — eseguibile portable
 - `docs/` — ARCHITETTURA.md, STRUTTURA_PROGETTO.md, CHANGELOG.md
 
+**Workflow sviluppo (MCP e indici):**
+- **Server MCP:** Usare sempre i server MCP disponibili (GitHub, Firebase, Supabase, ecc.) per operazioni remote.
+- **Indici salvati:** Consultare la documentazione indicizzata (@Tauri, @Firebase, ecc.) prima di modifiche API esterne.
+- **Git:** Preferire MCP GitHub (`create_or_update_file`, `push_files`) per commit e push.
+
 **Formato risposta:** Strutturato. Per interventi tecnici: cosa fatto, file modificati, stato finale.
