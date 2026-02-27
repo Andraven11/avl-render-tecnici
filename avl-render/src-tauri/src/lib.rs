@@ -11,6 +11,7 @@ fn save_export(
     project_name: String,
     html_content: String,
     png_frontale: Option<String>,
+    png_posteriore: Option<String>,
     png_laterale: Option<String>,
     png_pianta: Option<String>,
 ) -> Result<String, String> {
@@ -40,6 +41,12 @@ fn save_export(
     if let Some(ref b64) = png_frontale {
         let bytes = decode_base64(b64)?;
         let mut f = fs::File::create(folder.join(format!("{}_FRONTALE.png", sanitized)))
+            .map_err(|e| e.to_string())?;
+        f.write_all(&bytes).map_err(|e| e.to_string())?;
+    }
+    if let Some(ref b64) = png_posteriore {
+        let bytes = decode_base64(b64)?;
+        let mut f = fs::File::create(folder.join(format!("{}_POSTERIORE.png", sanitized)))
             .map_err(|e| e.to_string())?;
         f.write_all(&bytes).map_err(|e| e.to_string())?;
     }
