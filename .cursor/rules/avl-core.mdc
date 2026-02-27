@@ -12,13 +12,13 @@ alwaysApply: true
 **Obiettivo:** Applicazione AVL Render Tecnici — generatore disegni tecnici LEDwall con:
 - UI React + TypeScript + Vite
 - Anteprima 3D (Three.js), viste 2D quotate nel viewer HTML
-- Export: cartella con nome evento (HTML + 3 PNG: Frontale, Laterale, Pianta)
+- Export: cartella con nome evento (HTML + 4 PNG: Frontale, Posteriore, Laterale, Pianta)
 - Eseguibile portable Tauri (Rust + WebView)
 
 **Logica attuale:**
 - **Gambe:** max = floor(width_mm/500), 1 ogni 500mm (giunzioni)
 - **Date:** setup, evento, smontaggio con campi Da–A (inizio–fine)
-- **Export:** dialog cartella → sottocartella [NomeEvento] → viewer.html + 3 PNG
+- **Export:** dialog cartella → sottocartella [NomeEvento] → viewer.html + 4 PNG (Frontale, Posteriore, Laterale, Pianta)
 
 **Struttura progetto:**
 - `avl-render/` — app principale (React + Tauri)
