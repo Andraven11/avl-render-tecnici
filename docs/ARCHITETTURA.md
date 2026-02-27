@@ -6,7 +6,7 @@ Applicazione desktop **portable** (singolo `.exe`, nessuna installazione) che pe
 
 1. Inserire dati evento e specifiche tecniche di un LEDwall
 2. Generare automaticamente un **viewer HTML interattivo** (3D + disegni 2D quotati)
-3. Esportare **PNG professionali** delle 3 viste + sezione truss
+3. Esportare **PNG professionali** delle 4 viste (Frontale, Posteriore, Laterale, Pianta) + sezione truss
 
 ---
 
@@ -50,9 +50,9 @@ Applicazione desktop **portable** (singolo `.exe`, nessuna installazione) che pe
 │  │  [Opzioni]         │   │   │    reale)             │  │ │
 │  │                    │   │   └──────────────────────┘  │ │
 │  │  ───────────────   │   │                              │ │
-│  │  [EXPORT HTML]     │   │   ┌─────┐ ┌─────┐ ┌─────┐  │ │
-│  │  [EXPORT PNG]      │   │   │FRONT│ │SIDE │ │ TOP │  │ │
-│  │  [SALVA PROGETTO]  │   │   └─────┘ └─────┘ └─────┘  │ │
+│  │  [EXPORT HTML]     │   │   ┌─────┐┌─────┐┌─────┐┌─────┐  │ │
+│  │  [EXPORT PNG]      │   │   │FRONT││POST ││SIDE ││ TOP │  │ │
+│  │  [SALVA PROGETTO]  │   │   └─────┘└─────┘└─────┘└─────┘  │ │
 │  │  [CARICA PROGETTO] │   │                              │ │
 │  └──────────────────┘   └──────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
@@ -75,6 +75,7 @@ UTENTE                          APP                         FILE SYSTEM
   │                              ├─ Crea sottocartella [NomeEvento]/
   │                              ├─ Genera viewer.html ────────►│ [cartella]/[NomeEvento]/viewer.html
   │                              ├─ Cattura canvas 2D ─────────►│ [NomeEvento]_FRONTALE.png
+  │                              ├─ ────────────────────── ────►│ [NomeEvento]_POSTERIORE.png
   │                              ├─ ────────────────────── ────►│ [NomeEvento]_LATERALE.png
   │                              ├─ ────────────────────── ────►│ [NomeEvento]_PIANTA.png
   │                              │                              │
@@ -178,7 +179,7 @@ interface StructureConfig {
 interface LegConfig {
   count: number;                 // 2..maxLegs (maxLegs = floor(width_mm/500), 1 gamba ogni 500mm)
   height_mm: number;             // 2000 (altezza verticale)
-  armLength_mm: number;          // 420 (profondità braccio L)
+  armLength_mm: number;         // 420 (profondità braccio L)
   edgeOffset_mm: number;         // 500 (distanza dal bordo LED)
   positions_mm: number[];        // CALCOLATO: posizioni X di ogni gamba
   basePlate: boolean;            // piastra base sì/no
@@ -499,6 +500,7 @@ output/
   YYYYMMDD_NomeProgetto/
     viewer.html
     AVL_NomeProgetto_FRONTALE.png
+    AVL_NomeProgetto_POSTERIORE.png
     AVL_NomeProgetto_LATERALE.png
     AVL_NomeProgetto_PIANTA.png
     AVL_NomeProgetto_SEZ_QX30.png
@@ -599,7 +601,7 @@ avl-render/
 │   ├── engine/
 │   │   ├── compute.ts             ← Calcoli (maxLegs, gambe, pesi, ris.)
 │   │   ├── pitch-db.ts            ← Risoluzioni pixel per pitch (Uniview/NovaStar)
-│   │   ├── export.ts               ← Export cartella (HTML + 3 PNG, dialog)
+│   │   ├── export.ts               ← Export cartella (HTML + 4 PNG, dialog)
 │   │   ├── project-to-p.ts         ← Conversione Project → parametri viewer
 │   │   └── truss-db.ts             ← Database specifiche truss (QX30, FX30)
 │   │
@@ -647,7 +649,7 @@ npm run smoke       # Smoke test (build completo)
 ## 11. Comandi Tauri (Rust ↔ JS)
 
 - **Dialog** (`tauri-plugin-dialog`): `open({ directory: true })` per scegliere cartella export
-- **save_export** (implementato): riceve `folderPath`, `projectName`, `htmlContent`, PNG base64; crea sottocartella e scrive `viewer.html` + 3 PNG
+- **save_export** (implementato): riceve `folderPath`, `projectName`, `htmlContent`, PNG base64 (frontale, posteriore, laterale, pianta); crea sottocartella e scrive `viewer.html` + 4 PNG
 
 ---
 
