@@ -6,102 +6,588 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LEDWALL STAND LEDWALL 5×2m — Stand Tecnico AVL</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0d1117; color: #c9d1d9; height: 100vh; overflow: hidden; }
-    .layout { display: flex; height: 100vh; }
-    #panel-left { width: 280px; flex-shrink: 0; padding: 20px 16px; background: #161b22; border-right: 1px solid #30363d; font-size: 12px; overflow-y: auto; }
-    #panel-left h2 { color: #58a6ff; margin-bottom: 10px; font-size: 14px; }
-    #panel-left .lbl { color: #8b949e; }
-    #panel-left .val { color: #c9d1d9; }
-    #panel-left .sep { height: 1px; background: #30363d; margin: 8px 0; }
-    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-    #view3d-section { height: 50vh; min-height: 280px; max-height: 500px; background: #0d1117; border-bottom: 1px solid #30363d; position: relative; }
-    #view3d-section .section-label { position: absolute; top: 8px; left: 16px; font-size: 11px; color: #58a6ff; text-transform: uppercase; z-index: 2; }
-    #view3d { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #eef1f6; }
-    .tabs { display: flex; gap: 1px; background: #161b22; border-bottom: 1px solid #30363d; flex-shrink: 0; }
-    .tabs button { flex: 1; padding: 10px 16px; background: #0d1117; border: none; border-bottom: 2px solid transparent; color: #8b949e; cursor: pointer; font-size: 13px; }
-    .tabs button:hover { color: #c9d1d9; background: #161b22; }
-    .tabs button.active { color: #58a6ff; border-bottom-color: #58a6ff; background: #161b22; }
-    .tab-content { flex: 1; overflow: auto; background: #0d1117; }
-    .tab-pane { display: none; padding: 16px; }
-    .tab-pane.active { display: block; }
-    .view-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #161b22; border-bottom: 1px solid #30363d; flex-shrink: 0; }
-    .view-header .view-title { font-size: 14px; font-weight: 600; color: #58a6ff; }
-    .view-header .view-actions { display: flex; align-items: center; gap: 8px; }
-    .btn-download { padding: 6px 14px; background: #21262d; border: 1px solid #30363d; color: #58a6ff; cursor: pointer; font-size: 12px; border-radius: 6px; }
-    .btn-download:hover { background: #30363d; }
-    .zoom-controls { display: flex; gap: 2px; }
-    .zoom-controls button { width: 32px; height: 28px; background: #21262d; border: 1px solid #30363d; color: #58a6ff; cursor: pointer; font-size: 16px; font-weight: bold; border-radius: 4px; }
-    .zoom-controls button:hover { background: #30363d; }
-    .drawing-wrap { text-align: center; padding: 16px; overflow: auto; }
-    .drawing-wrap img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #30363d; transition: transform 0.15s ease; transform-origin: center center; }
-    .footer { flex-shrink: 0; font-size: 10px; color: #484f58; padding: 6px 16px; background: #161b22; border-top: 1px solid #30363d; text-align: right; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .layout {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* ─── Pannello sinistro ─── */
+    #panel-left {
+      width: 280px;
+      flex-shrink: 0;
+      padding: 20px 16px;
+      background: #161b22;
+      border-right: 1px solid #30363d;
+      font-size: 12px;
+      overflow-y: auto;
+    }
+
+    #panel-left h2 {
+      color: #58a6ff;
+      margin-bottom: 10px;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    #panel-left .lbl {
+      color: #8b949e;
+    }
+
+    #panel-left .val {
+      color: #c9d1d9;
+    }
+
+    #panel-left .sep {
+      height: 1px;
+      background: #30363d;
+      margin: 8px 0;
+    }
+
+    /* ─── Area principale ─── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* ─── 3D viewer fisso in alto ─── */
+    #view3d-section {
+      height: 50vh;
+      min-height: 280px;
+      max-height: 500px;
+      background: #0d1117;
+      border-bottom: 1px solid #30363d;
+      position: relative;
+    }
+
+    #view3d-section .section-label {
+      position: absolute;
+      top: 8px;
+      left: 16px;
+      font-size: 11px;
+      color: #58a6ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    #view3d {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #eef1f6;
+    }
+
+    /* ─── Tabs ─── */
+    .tabs {
+      display: flex;
+      gap: 1px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      flex-shrink: 0;
+    }
+
+    .tabs button {
+      flex: 1;
+      padding: 10px 16px;
+      background: #0d1117;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #8b949e;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+
+    .tabs button:hover {
+      color: #c9d1d9;
+      background: #161b22;
+    }
+
+    .tabs button.active {
+      color: #58a6ff;
+      border-bottom-color: #58a6ff;
+      background: #161b22;
+    }
+
+    /* ─── Tab content ─── */
+    .tab-content {
+      flex: 1;
+      overflow: auto;
+      background: #0d1117;
+    }
+
+    .tab-pane {
+      display: none;
+      padding: 16px;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    /* ─── Header vista (titolo + download) ─── */
+    .view-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      flex-shrink: 0;
+    }
+
+    .view-header .view-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #58a6ff;
+    }
+
+    .view-header .view-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-download {
+      padding: 6px 14px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #58a6ff;
+      cursor: pointer;
+      font-size: 12px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+
+    .btn-download:hover {
+      background: #30363d;
+    }
+
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .zoom-controls button {
+      width: 32px;
+      height: 28px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #58a6ff;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 4px;
+      line-height: 1;
+    }
+
+    .zoom-controls button:hover {
+      background: #30363d;
+    }
+
+    .drawing-wrap {
+      text-align: center;
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .drawing-wrap img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      transition: transform 0.15s ease;
+      transform-origin: center center;
+    }
+
+    /* ─── Footer ─── */
+    .footer {
+      flex-shrink: 0;
+      font-size: 10px;
+      color: #484f58;
+      padding: 6px 16px;
+      background: #161b22;
+      border-top: 1px solid #30363d;
+      text-align: right;
+    }
   </style>
 </head>
+
 <body>
   <div class="layout">
-    <div id="panel-left"><h2>▸ DATI TECNICI</h2><span class="lbl">Progetto: </span><span class="val">—</span><br><div class="sep"></div></div>
+    <div id="panel-left">
+      <h2>▸ DATI TECNICI</h2>
+      <span class="lbl">Progetto: </span><span class="val">—</span><br>
+      <div class="sep"></div>
+    </div>
+
     <div class="main">
-      <div id="view3d-section"><span class="section-label">Modello 3D</span><div id="view3d"></div></div>
+      <!-- 3D sempre visibile -->
+      <div id="view3d-section">
+        <span class="section-label">Modello 3D</span>
+        <div id="view3d"></div>
+      </div>
+
+      <!-- Tab viste tecniche -->
       <div class="tabs">
         <button data-tab="frontale" class="active">Frontale</button>
         <button data-tab="posteriore">Posteriore</button>
         <button data-tab="laterale">Laterale</button>
         <button data-tab="pianta">Pianta</button>
       </div>
+
       <div class="tab-content">
         <div id="pane-frontale" class="tab-pane active">
           <div class="view-header">
             <span class="view-title">Vista Frontale (faccia LED)</span>
             <div class="view-actions">
-              <div class="zoom-controls"><button data-zoom-out="img-frontale" aria-label="Zoom out">−</button><button data-zoom-in="img-frontale" aria-label="Zoom in">+</button></div>
-              <button class="btn-download" data-download="img-frontale" data-filename="Vista_Frontale.png">⬇ Scarica PNG</button>
+              <div class="zoom-controls">
+                <button data-zoom-out="img-frontale" aria-label="Zoom out">−</button>
+                <button data-zoom-in="img-frontale" aria-label="Zoom in">+</button>
+              </div>
+              <button class="btn-download" data-download="img-frontale" data-filename="Vista_Frontale.png">⬇ Scarica
+                PNG</button>
             </div>
           </div>
-          <div class="drawing-wrap"><img id="img-frontale" src="{{PNG_FRONTALE}}" alt="Vista Frontale" data-zoom="1" /></div>
+          <div class="drawing-wrap">
+            <img id="img-frontale" src="{{PNG_FRONTALE}}" alt="Vista Frontale" data-zoom="1" />
+          </div>
         </div>
         <div id="pane-posteriore" class="tab-pane">
           <div class="view-header">
             <span class="view-title">Vista Posteriore (struttura)</span>
             <div class="view-actions">
-              <div class="zoom-controls"><button data-zoom-out="img-posteriore" aria-label="Zoom out">−</button><button data-zoom-in="img-posteriore" aria-label="Zoom in">+</button></div>
-              <button class="btn-download" data-download="img-posteriore" data-filename="Vista_Posteriore.png">⬇ Scarica PNG</button>
+              <div class="zoom-controls">
+                <button data-zoom-out="img-posteriore" aria-label="Zoom out">−</button>
+                <button data-zoom-in="img-posteriore" aria-label="Zoom in">+</button>
+              </div>
+              <button class="btn-download" data-download="img-posteriore" data-filename="Vista_Posteriore.png">⬇ Scarica
+                PNG</button>
             </div>
           </div>
-          <div class="drawing-wrap"><img id="img-posteriore" src="{{PNG_POSTERIORE}}" alt="Vista Posteriore" data-zoom="1" /></div>
+          <div class="drawing-wrap">
+            <img id="img-posteriore" src="{{PNG_POSTERIORE}}" alt="Vista Posteriore" data-zoom="1" />
+          </div>
         </div>
         <div id="pane-laterale" class="tab-pane">
           <div class="view-header">
             <span class="view-title">Vista Laterale</span>
             <div class="view-actions">
-              <div class="zoom-controls"><button data-zoom-out="img-laterale" aria-label="Zoom out">−</button><button data-zoom-in="img-laterale" aria-label="Zoom in">+</button></div>
-              <button class="btn-download" data-download="img-laterale" data-filename="Vista_Laterale.png">⬇ Scarica PNG</button>
+              <div class="zoom-controls">
+                <button data-zoom-out="img-laterale" aria-label="Zoom out">−</button>
+                <button data-zoom-in="img-laterale" aria-label="Zoom in">+</button>
+              </div>
+              <button class="btn-download" data-download="img-laterale" data-filename="Vista_Laterale.png">⬇ Scarica
+                PNG</button>
             </div>
           </div>
-          <div class="drawing-wrap"><img id="img-laterale" src="{{PNG_LATERALE}}" alt="Vista Laterale" data-zoom="1" /></div>
+          <div class="drawing-wrap">
+            <img id="img-laterale" src="{{PNG_LATERALE}}" alt="Vista Laterale" data-zoom="1" />
+          </div>
         </div>
         <div id="pane-pianta" class="tab-pane">
           <div class="view-header">
             <span class="view-title">Vista Pianta</span>
             <div class="view-actions">
-              <div class="zoom-controls"><button data-zoom-out="img-pianta" aria-label="Zoom out">−</button><button data-zoom-in="img-pianta" aria-label="Zoom in">+</button></div>
-              <button class="btn-download" data-download="img-pianta" data-filename="Vista_Pianta.png">⬇ Scarica PNG</button>
+              <div class="zoom-controls">
+                <button data-zoom-out="img-pianta" aria-label="Zoom out">−</button>
+                <button data-zoom-in="img-pianta" aria-label="Zoom in">+</button>
+              </div>
+              <button class="btn-download" data-download="img-pianta" data-filename="Vista_Pianta.png">⬇ Scarica
+                PNG</button>
             </div>
           </div>
-          <div class="drawing-wrap"><img id="img-pianta" src="{{PNG_PIANTA}}" alt="Vista Pianta" data-zoom="1" /></div>
+          <div class="drawing-wrap">
+            <img id="img-pianta" src="{{PNG_PIANTA}}" alt="Vista Pianta" data-zoom="1" />
+          </div>
         </div>
       </div>
+
       <div class="footer">AVL_LEDWALL5x2_ — 02/2026</div>
     </div>
   </div>
+
   <script src="three.min.js"></script>
   <script>
-    const P = { LED_W: 5, LED_H: 2, LED_H_ACTIVE: 1.5, LED_W_ACTIVE: 5, CAB: 0.5, CAB_W: 0.5, CAB_H: 0.5, CAB_D: 0.08, CAB_ROWS: 4, CAB_COLS: 10, DEAD_ROWS: 0, DEAD_COLS: 0, BOT_BAR: 0.1, LEG_X: [0.5, 2.5, 5, 7.5, 9.5], LEG_H: 2, LEG_ARM: 0.42, QX: 0.29, QX_DEPTH: 0.29, TRUSS_DEPTH: 0.29, IS_FLAT: false, BASE_PLATE_W: 0.33, BASE_PLATE_D: 0.48, CHORD_R: 0.025, DIAG_R: 0.009, Z_LED_BACK: 0.08, Z_GAP: 0.15, TUBE_R: 0.025 };
-    P.Z_TF = P.Z_LED_BACK + P.Z_GAP; P.Z_TC = P.Z_TF + (P.TRUSS_DEPTH || P.QX_DEPTH) / 2; P.Z_TB = P.Z_TF + (P.TRUSS_DEPTH || P.QX_DEPTH); P.Z_ARM_C = P.Z_TB + P.LEG_ARM / 2; P.QH = P.IS_FLAT ? P.QX_DEPTH / 2 : P.QX / 2; P.Z_TUBE = P.Z_TF - 0.03; P.TUBE_Y = [0.5, 1.0, 1.5];
-    document.querySelectorAll('.tabs button').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active')); btn.classList.add('active'); document.getElementById('pane-' + btn.dataset.tab).classList.add('active'); }); });
-    document.querySelectorAll('[data-download]').forEach(btn => { btn.addEventListener('click', () => { const img = document.getElementById(btn.dataset.download); if (!img || !img.src || img.src.indexOf('data:') !== 0) return; const a = document.createElement('a'); a.href = img.src; a.download = btn.dataset.filename || 'download.png'; document.body.appendChild(a); a.click(); document.body.removeChild(a); }); });
-    const ZOOM_STEP = 0.25, ZOOM_MIN = 0.5, ZOOM_MAX = 3;
-    document.querySelectorAll('[data-zoom-in], [data-zoom-out]').forEach(btn => { btn.addEventListener('click', () => { const imgId = btn.dataset.zoomIn || btn.dataset.zoomOut; const img = document.getElementById(imgId); if (!img) return; let zoom = parseFloat(img.dataset.zoom || '1'); zoom = btn.dataset.zoomIn ? Math.min(ZOOM_MAX, zoom + ZOOM_STEP) : Math.max(ZOOM_MIN, zoom - ZOOM_STEP); img.dataset.zoom = String(zoom); img.style.transform = 'scale(' + zoom + ')'; }); });
+    const P = {
+      LED_W: 5, LED_H: 2, LED_H_ACTIVE: 1.5, LED_W_ACTIVE: 5,
+      CAB: 0.5, CAB_W: 0.5, CAB_H: 0.5, CAB_D: 0.08, CAB_ROWS: 4, CAB_COLS: 10,
+      DEAD_ROWS: 0, DEAD_COLS: 0,
+      BOT_BAR: 0.1,
+      LEG_X: [0.5, 2.5, 5, 7.5, 9.5],
+      LEG_H: 2, LEG_ARM: 0.42,
+      QX: 0.29, QX_DEPTH: 0.29, TRUSS_DEPTH: 0.29, IS_FLAT: false,
+      BASE_PLATE_W: 0.33, BASE_PLATE_D: 0.48,
+      CHORD_R: 0.025, DIAG_R: 0.009,
+      Z_LED_BACK: 0.08, Z_GAP: 0.15,
+      TUBE_R: 0.025,
+    };
+    P.Z_TF = P.Z_LED_BACK + P.Z_GAP;
+    P.Z_TC = P.Z_TF + (P.TRUSS_DEPTH || P.QX_DEPTH) / 2;
+    P.Z_TB = P.Z_TF + (P.TRUSS_DEPTH || P.QX_DEPTH);
+    P.Z_ARM_C = P.Z_TB + P.LEG_ARM / 2;
+    P.QH = P.IS_FLAT ? P.QX_DEPTH / 2 : P.QX / 2;
+    P.Z_TUBE = P.Z_TF - 0.03;
+    P.TUBE_Y = [0.5, 1.0, 1.5];
+
+    /* ─── Tab switching ─── */
+    document.querySelectorAll('.tabs button').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.remove('active'); });
+        document.querySelectorAll('.tab-pane').forEach(function (p) { p.classList.remove('active'); });
+        btn.classList.add('active');
+        document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    /* ─── PNG download ─── */
+    document.querySelectorAll('[data-download]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var img = document.getElementById(btn.dataset.download);
+        if (!img || !img.src || img.src.indexOf('data:') !== 0) return;
+        var a = document.createElement('a');
+        a.href = img.src;
+        a.download = btn.dataset.filename || 'download.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      });
+    });
+
+    /* ─── Zoom sulle viste ─── */
+    var ZOOM_STEP = 0.25;
+    var ZOOM_MIN = 0.5;
+    var ZOOM_MAX = 3;
+    document.querySelectorAll('[data-zoom-in], [data-zoom-out]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var imgId = btn.dataset.zoomIn || btn.dataset.zoomOut;
+        var img = document.getElementById(imgId);
+        if (!img) return;
+        var zoom = parseFloat(img.dataset.zoom || '1');
+        zoom = btn.dataset.zoomIn ? Math.min(ZOOM_MAX, zoom + ZOOM_STEP) : Math.max(ZOOM_MIN, zoom - ZOOM_STEP);
+        img.dataset.zoom = String(zoom);
+        img.style.transform = 'scale(' + zoom + ')';
+      });
+    });
+
+    /* ─── 3D scene ─── */
+    (function () {
+      if (typeof THREE === 'undefined') {
+        var el = document.getElementById('view3d');
+        if (el) { el.style.display = 'flex'; el.style.alignItems = 'center'; el.style.justifyContent = 'center'; el.style.color = '#888'; el.style.fontSize = '14px'; el.textContent = '3D non disponibile (Three.js non caricato)'; }
+        return;
+      }
+
+      function boot() {
+        var container = document.getElementById('view3d');
+        if (!container) return;
+        var rect = container.getBoundingClientRect();
+        var W = Math.max(Math.floor(rect.width), 320);
+        var H = Math.max(Math.floor(rect.height), 240);
+
+        var CAB_W = P.CAB_W || P.CAB, CAB_H = P.CAB_H || P.CAB;
+        var DEAD_ROWS = P.DEAD_ROWS || 0, DEAD_COLS = P.DEAD_COLS || 0;
+        var isFlat = P.IS_FLAT || false;
+        var QH = P.QH || P.QX / 2;
+        var trussDepth = isFlat ? P.QX : (P.QX_DEPTH || P.QX);
+        var zC = P.Z_TC || P.Z_TF + trussDepth / 2;
+        var Z_TUBE = P.Z_TUBE || P.Z_TF - 0.03;
+
+        var scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xeef1f6);
+        var camera = new THREE.PerspectiveCamera(42, W / H, 0.01, 100);
+        var renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(W, H);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+        var sun = new THREE.DirectionalLight(0xffffff, 1.0);
+        sun.position.set(6, 10, 8);
+        sun.castShadow = true;
+        sun.shadow.mapSize.width = 1024;
+        sun.shadow.mapSize.height = 1024;
+        scene.add(sun);
+        scene.add(new THREE.DirectionalLight(0xddeeff, 0.35).position.set(-4, 3, -5));
+        scene.add(new THREE.DirectionalLight(0xffffff, 0.3).position.set(0, 5, -8));
+
+        var floorGeo = new THREE.PlaneGeometry(20, 20);
+        var floorMat = new THREE.ShadowMaterial({ opacity: 0.15 });
+        var floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(P.LED_W / 2, 0, 0.4);
+        floor.receiveShadow = true;
+        scene.add(floor);
+        scene.add(new THREE.GridHelper(14, 28, 0xbbbbbb, 0xdddddd).position.set(P.LED_W / 2, 0, 0.4));
+
+        var MAT = {
+          chord: new THREE.MeshStandardMaterial({ color: isFlat ? 0x708090 : 0x607090, metalness: 0.7, roughness: 0.3 }),
+          diagLine: new THREE.LineBasicMaterial({ color: isFlat ? 0x556070 : 0x455a64 }),
+          ledON: new THREE.MeshStandardMaterial({ color: 0x1a6fce, emissive: 0x0a2a6a, metalness: 0.1, roughness: 0.6 }),
+          ledOFF: new THREE.MeshStandardMaterial({ color: 0x2c3e50, metalness: 0.2, roughness: 0.7 }),
+          frame: new THREE.LineBasicMaterial({ color: 0x000000 }),
+          bar: new THREE.MeshStandardMaterial({ color: 0x78909c, metalness: 0.5, roughness: 0.4 }),
+          tube: new THREE.MeshStandardMaterial({ color: 0xc0392b, metalness: 0.6, roughness: 0.35 }),
+          clamp: new THREE.MeshStandardMaterial({ color: 0x27ae60, metalness: 0.5, roughness: 0.4 }),
+          base: new THREE.MeshStandardMaterial({ color: 0x444455, metalness: 0.4, roughness: 0.5 }),
+        };
+
+        function cyl(r, h, mat, x, y, z, axis) {
+          axis = axis || 'y';
+          var m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, r > 0.02 ? 12 : 8), mat);
+          if (axis === 'x') m.rotation.z = Math.PI / 2;
+          if (axis === 'z') m.rotation.x = Math.PI / 2;
+          m.position.set(x, y, z);
+          m.castShadow = true;
+          scene.add(m);
+        }
+        function bx(w, h, d, mat, x, y, z) {
+          var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+          m.position.set(x, y, z);
+          m.castShadow = m.receiveShadow = true;
+          scene.add(m);
+        }
+        function lineSegs(pts, mat) {
+          var geo = new THREE.BufferGeometry().setFromPoints(pts.map(function (p) { return new THREE.Vector3(p[0], p[1], p[2]); }));
+          scene.add(new THREE.LineSegments(geo, mat));
+        }
+
+        function makeLegQX30(lx) {
+          var y1 = P.LEG_H;
+          [[lx - QH, zC - QH], [lx + QH, zC - QH], [lx - QH, zC + QH], [lx + QH, zC + QH]].forEach(function (v) {
+            cyl(P.CHORD_R, y1, MAT.chord, v[0], y1 / 2, v[1]);
+          });
+          var bays = 4, bH = y1 / bays, diagPts = [];
+          for (var i = 0; i <= bays; i++) {
+            var y = i * bH;
+            diagPts.push([lx - QH, y, zC - QH], [lx + QH, y, zC - QH], [lx - QH, y, zC + QH], [lx + QH, y, zC + QH],
+              [lx - QH, y, zC - QH], [lx - QH, y, zC + QH], [lx + QH, y, zC - QH], [lx + QH, y, zC + QH]);
+            if (i < bays) {
+              var yn = (i + 1) * bH;
+              diagPts.push([lx - QH, y, zC - QH], [lx + QH, yn, zC - QH], [lx + QH, y, zC - QH], [lx - QH, yn, zC - QH]);
+              diagPts.push([lx - QH, y, zC + QH], [lx + QH, yn, zC + QH], [lx + QH, y, zC + QH], [lx - QH, yn, zC + QH]);
+            }
+          }
+          lineSegs(diagPts, MAT.diagLine);
+          var zAF = P.Z_TB, zAB = P.Z_TB + P.LEG_ARM, zAM = (zAF + zAB) / 2;
+          [[lx - QH, P.CHORD_R], [lx + QH, P.CHORD_R], [lx - QH, P.QX - P.CHORD_R], [lx + QH, P.QX - P.CHORD_R]].forEach(function (v) {
+            cyl(P.CHORD_R, P.LEG_ARM, MAT.chord, v[0], v[1], zAM, 'z');
+          });
+          bx(P.QX + 0.04, 0.015, P.LEG_ARM + 0.06, MAT.base, lx, 0.008, zAM);
+        }
+
+        function makeLegFX30(lx) {
+          var y1 = P.LEG_H, halfW = P.QX_DEPTH / 2, zF = P.Z_TF, zB = P.Z_TB;
+          var xL = lx - halfW, xR = lx + halfW;
+          [[xL, zF], [xR, zF], [xL, zB], [xR, zB]].forEach(function (v) { cyl(P.CHORD_R, y1, MAT.chord, v[0], y1 / 2, v[1]); });
+          var bays = 4, bH = y1 / bays, diagPts = [];
+          for (var i = 0; i < bays; i++) {
+            var y = i * bH, yn = (i + 1) * bH;
+            diagPts.push([xL, y, zF], [xR, yn, zB], [xR, y, zB], [xL, yn, zF], [xR, y, zF], [xL, yn, zB], [xL, y, zB], [xR, yn, zF]);
+          }
+          lineSegs(diagPts, MAT.diagLine);
+        }
+
+        var makeLeg = isFlat ? makeLegFX30 : makeLegQX30;
+        if (P.BOT_BAR > 0) bx(P.LED_W, P.BOT_BAR, 0.12, MAT.bar, P.LED_W / 2, P.BOT_BAR / 2, 0);
+
+        for (var col = 0; col < P.CAB_COLS; col++) {
+          for (var row = 0; row < P.CAB_ROWS; row++) {
+            var x = CAB_W / 2 + col * CAB_W;
+            var y = P.BOT_BAR + CAB_H / 2 + row * CAB_H;
+            var mat = (row < DEAD_ROWS || col < DEAD_COLS || col >= P.CAB_COLS - DEAD_COLS) ? MAT.ledOFF : MAT.ledON;
+            bx(CAB_W - 0.005, CAB_H - 0.005, P.CAB_D, mat, x, y, 0);
+            var fr = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(CAB_W - 0.005, CAB_H - 0.005, P.CAB_D)), MAT.frame);
+            fr.position.set(x, y, 0);
+            scene.add(fr);
+          }
+        }
+
+        if (P.LEG_X.length > 0) P.LEG_X.forEach(function (lx) { makeLeg(lx); });
+
+        if (P.LEG_X.length >= 2 && P.TUBE_Y.length > 0) {
+          var spanX = P.LEG_X[P.LEG_X.length - 1] - P.LEG_X[0];
+          var xMid = (P.LEG_X[0] + P.LEG_X[P.LEG_X.length - 1]) / 2;
+          P.TUBE_Y.forEach(function (ty) { cyl(P.TUBE_R, spanX, MAT.tube, xMid, ty, Z_TUBE, 'x'); });
+          P.LEG_X.forEach(function (lx) {
+            P.TUBE_Y.forEach(function (ty) {
+              bx(0.065, 0.065, 0.1, MAT.clamp, lx, ty, Z_TUBE);
+              bx(0.065, 0.065, 0.1, MAT.clamp, lx, ty, Z_TUBE - 0.06);
+            });
+          });
+        }
+
+        var tgt = new THREE.Vector3(P.LED_W / 2, (P.BOT_BAR + P.LED_H) / 2, zC);
+        var wallDiag = Math.sqrt(P.LED_W * P.LED_W + (P.BOT_BAR + P.LED_H) * (P.BOT_BAR + P.LED_H));
+        var fovRad = camera.fov * Math.PI / 180;
+        var r = Math.max(2, Math.min(22, wallDiag / (2 * Math.tan(fovRad / 2)) * 1.4));
+        var sph = { theta: -0.6, phi: 1.05, r: r }, drag = false, rDrag = false, prev = { x: 0, y: 0 };
+
+        function cam() {
+          camera.position.set(
+            tgt.x + sph.r * Math.sin(sph.phi) * Math.sin(sph.theta),
+            tgt.y + sph.r * Math.cos(sph.phi),
+            tgt.z + sph.r * Math.sin(sph.phi) * Math.cos(sph.theta));
+          camera.lookAt(tgt);
+        }
+        cam();
+        renderer.render(scene, camera);
+
+        container.addEventListener('mousedown', function (e) { drag = true; rDrag = e.button === 2; prev = { x: e.clientX, y: e.clientY }; });
+        container.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+        window.addEventListener('mouseup', function () { drag = false; });
+        window.addEventListener('mousemove', function (e) {
+          if (!drag) return;
+          var dx = (e.clientX - prev.x) * 0.005, dy = (e.clientY - prev.y) * 0.005;
+          if (rDrag) { tgt.x -= dx * 1.5; tgt.y += dy * 1.5; }
+          else { sph.theta -= dx; sph.phi = Math.max(0.05, Math.min(Math.PI - 0.05, sph.phi + dy)); }
+          prev = { x: e.clientX, y: e.clientY };
+          cam();
+        });
+        container.addEventListener('wheel', function (e) {
+          sph.r = Math.max(1.5, Math.min(22, sph.r + e.deltaY * 0.005));
+          cam();
+        });
+
+        (function animate() { requestAnimationFrame(animate); renderer.render(scene, camera); })();
+
+        new ResizeObserver(function () {
+          var nr = container.getBoundingClientRect();
+          var nW = Math.max(Math.floor(nr.width), 320);
+          var nH = Math.max(Math.floor(nr.height), 240);
+          camera.aspect = nW / nH;
+          camera.updateProjectionMatrix();
+          renderer.setSize(nW, nH);
+        }).observe(container);
+      }
+
+      if (document.readyState === 'complete') { boot(); }
+      else { window.addEventListener('load', boot); }
+    })();
   </script>
 </body>
+
 </html>
