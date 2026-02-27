@@ -8,6 +8,11 @@
 - **Zoom**: pulsanti +/− per ogni vista (0.5×–3×)
 - **Export cartella**: salva `viewer.html` + 4 PNG (FRONTALE, POSTERIORE, LATERALE, PIANTA)
 
+### Workflow MCP e indici
+- **Rules:** Workflow con server MCP e indici salvati (avl-core.mdc)
+- **Docs:** ARCHITETTURA 10.2, STRUTTURA_PROGETTO — MCP, indici, sync git
+- **.gitignore:** Pattern per file debug/temp (git-status*.txt, mcps/, ecc.)
+
 ### Export e struttura
 - **Gambe**: massimo = floor(width_mm/500), 1 gamba ogni 500mm (giunzioni)
 - **Date evento**: campi Da–A per setup, evento e smontaggio
