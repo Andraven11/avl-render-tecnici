@@ -27,3 +27,9 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local
+
+# Debug / temp (file celesti = untracked)
+git-status*.txt
+push-result.txt
+report.txt
+mcps/
