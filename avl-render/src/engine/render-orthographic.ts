@@ -8,8 +8,8 @@ import { buildLedwallScene, type SceneParams } from "./scene-builder";
 import type { DrawMeta } from "./draw-technical";
 
 /* ── Canvas dimensions ─────────────────────────────────────────── */
-const W = 2800;
-const H = 2000;
+const W = 3200;
+const H = 2400;
 const MARGIN = 100;
 const DIM_OFFSET = 50;
 const ARROW_LEN = 12;
@@ -474,7 +474,80 @@ function disposeScene(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   RENDER: VISTA FRONTALE
+   SCENE BOUNDS — compute world-space bounding box for each view
+   ══════════════════════════════════════════════════════════════════ */
+
+function sceneBounds(P: SceneParams) {
+  const qh = P.QH ?? P.QX / 2;
+  const legXMin = P.LEG_X.length > 0 ? Math.min(...P.LEG_X) - qh : 0;
+  const legXMax = P.LEG_X.length > 0 ? Math.max(...P.LEG_X) + qh : P.LED_W;
+  return {
+    xMin: Math.min(0, legXMin),
+    xMax: Math.max(P.LED_W, legXMax),
+    yMin: 0,
+    yMax: Math.max(P.BOT_BAR + P.LED_H, P.LEG_H),
+    zMin: 0,
+    zMax: P.Z_TB + (P.LEG_ARM || 0),
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   COMMON RENDER SETUP — canvas, renderer, drawing area
+   ══════════════════════════════════════════════════════════════════ */
+
+function setupRender(
+  canvas: HTMLCanvasElement,
+  scene: THREE.Scene,
+  cam: THREE.OrthographicCamera,
+  sceneW: number,
+  sceneH: number,
+) {
+  canvas.width = W;
+  canvas.height = H;
+
+  const drawAreaW = W - 2 * MARGIN - 440;
+  const drawAreaH = H - 280;
+
+  const scaleX = drawAreaW / sceneW;
+  const scaleY = drawAreaH / sceneH;
+  const scale = Math.min(scaleX, scaleY) * 0.85;
+
+  const renderW = Math.floor(sceneW * scale);
+  const renderH = Math.floor(sceneH * scale);
+  const ox = MARGIN + 80;
+  const oy = 80 + Math.floor((drawAreaH - renderH) / 2) + 20;
+
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true, alpha: false, preserveDrawingBuffer: true,
+  });
+  renderer.setSize(renderW, renderH);
+  renderer.setClearColor(0xf0f2f5);
+  renderer.render(scene, cam);
+
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = C_BG;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.12)";
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetX = 2;
+  ctx.shadowOffsetY = 2;
+  ctx.drawImage(renderer.domElement, ox, oy, renderW, renderH);
+  ctx.restore();
+
+  ctx.strokeStyle = C_BORDER;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(ox, oy, renderW, renderH);
+
+  disposeScene(scene, renderer);
+
+  return { ctx, ox, oy, renderW, renderH, scale };
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RENDER: VISTA FRONTALE VERA (dal pubblico, faccia LED)
+   Camera da -Z verso +Z, vede solo la faccia anteriore
    ══════════════════════════════════════════════════════════════════ */
 
 export function renderFrontale(
@@ -483,102 +556,49 @@ export function renderFrontale(
   meta: RenderMeta,
   basePlate: boolean,
 ): void {
-  canvas.width = W;
-  canvas.height = H;
-
   const { scene } = buildLedwallScene(P, basePlate);
+  const pad = 0.3;
+  const sceneW = P.LED_W + 2 * pad;
+  const sceneH = P.BOT_BAR + P.LED_H + 2 * pad;
+  const cx = P.LED_W / 2;
+  const cy = (P.BOT_BAR + P.LED_H) / 2;
+
+  const cam = new THREE.OrthographicCamera(
+    -sceneW / 2, sceneW / 2, sceneH / 2, -sceneH / 2, 0.1, 50,
+  );
+  cam.position.set(cx, cy, -5);
+  cam.lookAt(cx, cy, 0);
+
+  const { ctx, ox, oy, renderH, scale } = setupRender(canvas, scene, cam, sceneW, sceneH);
+
+  const toX = (wx: number) => ox + (wx + pad) * scale;
+  const toY = (wy: number) => oy + (P.BOT_BAR + P.LED_H + pad - wy) * scale;
+  const bottomY = oy + renderH;
   const hTot = P.BOT_BAR + P.LED_H;
 
-  // Layout: drawing area excluding header(60), margins, data panel(420)
-  const drawAreaW = W - 2 * MARGIN - 440;
-  const drawAreaH = H - 200;
+  drawDimension(ctx, toX(0), bottomY, toX(P.LED_W), bottomY, toMm(P.LED_W), true, { offset: 40 });
+  drawDimension(ctx, toX(0), toY(hTot), toX(0), toY(0), toMm(hTot), false, { offset: 50 });
 
-  const scaleX = drawAreaW / P.LED_W;
-  const scaleY = drawAreaH / hTot;
-  const scale = Math.min(scaleX, scaleY) * 0.82;
-
-  const renderW = Math.floor(P.LED_W * scale);
-  const renderH = Math.floor(hTot * scale);
-  const ox = MARGIN + 60;
-  const oy = 80 + (drawAreaH - renderH) / 2 + 40;
-
-  // Camera
-  const pad = 0.2;
-  const orthoCam = new THREE.OrthographicCamera(
-    -pad, P.LED_W + pad,
-    hTot + pad, -P.BOT_BAR - pad,
-    0.1, 50,
-  );
-  orthoCam.position.set(P.LED_W / 2, hTot / 2, 20);
-  orthoCam.lookAt(P.LED_W / 2, hTot / 2, 0);
-
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true, alpha: false, preserveDrawingBuffer: true,
-  });
-  renderer.setSize(renderW, renderH);
-  renderer.setClearColor(0xf0f2f5);
-  renderer.render(scene, orthoCam);
-
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = C_BG;
-  ctx.fillRect(0, 0, W, H);
-
-  // Draw 3D render
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.12)";
-  ctx.shadowBlur = 12;
-  ctx.shadowOffsetX = 2;
-  ctx.shadowOffsetY = 2;
-  ctx.drawImage(renderer.domElement, ox, oy, renderW, renderH);
-  ctx.restore();
-
-  // Border around render
-  ctx.strokeStyle = C_BORDER;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(ox, oy, renderW, renderH);
-
-  disposeScene(scene, renderer);
-
-  // ── Dimensions ──
-  const s = scale;
-  const bottomY = oy + renderH;
-
-  // Width (total)
-  drawDimension(ctx, ox, bottomY, ox + renderW, bottomY, toMm(P.LED_W), true, { offset: 40 });
-
-  // Height (total)
-  drawDimension(ctx, ox, oy, ox, bottomY, toMm(hTot), false, { offset: 50 });
-
-  // LED height only (if bottomBar exists)
   if (P.BOT_BAR > 0) {
-    const ledTopY = oy;
-    const ledBotY = oy + P.LED_H * s;
-    drawDimension(ctx, ox, ledTopY, ox, ledBotY, toMm(P.LED_H), false, {
+    drawDimension(ctx, toX(0), toY(hTot), toX(0), toY(P.BOT_BAR), toMm(P.LED_H), false, {
       offset: 100, font: F_DIM_SM, color: C_ACCENT,
     });
-
-    // Bottom bar height
-    drawDimension(ctx, ox, ledBotY, ox, bottomY, toMm(P.BOT_BAR), false, {
+    drawDimension(ctx, toX(0), toY(P.BOT_BAR), toX(0), toY(0), toMm(P.BOT_BAR), false, {
       offset: 100, font: F_DIM_SM, color: "#666",
     });
   }
 
-  // Leg spacing
   if (P.LEG_X.length >= 2) {
-    const x1 = ox + P.LEG_X[0] * s;
-    const x2 = ox + P.LEG_X[P.LEG_X.length - 1] * s;
+    const x1 = toX(P.LEG_X[0]);
+    const x2 = toX(P.LEG_X[P.LEG_X.length - 1]);
     drawDimension(ctx, x1, bottomY + 30, x2, bottomY + 30,
       toMm(P.LEG_X[P.LEG_X.length - 1] - P.LEG_X[0]), true,
       { offset: 40, font: F_DIM_SM, color: C_ACCENT },
     );
-  }
-
-  // Individual leg positions (tick marks)
-  if (P.LEG_X.length >= 2) {
     ctx.strokeStyle = "#cc4444";
     ctx.lineWidth = 1;
     P.LEG_X.forEach((lx) => {
-      const px = ox + lx * s;
+      const px = toX(lx);
       ctx.beginPath();
       ctx.moveTo(px, bottomY + 2);
       ctx.lineTo(px, bottomY + 18);
@@ -586,7 +606,6 @@ export function renderFrontale(
     });
   }
 
-  // ── Page elements ──
   drawPageHeader(ctx, "VISTA FRONTALE", meta.projectName || "Progetto");
   drawDataPanel(ctx, W - MARGIN - 400, 80, 400, meta, "VISTA FRONTALE");
   drawTitleBlock(ctx, meta, "VISTA FRONTALE");
@@ -594,7 +613,77 @@ export function renderFrontale(
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   RENDER: VISTA LATERALE
+   RENDER: VISTA POSTERIORE (da dietro, struttura/truss/gambe)
+   Camera da +Z verso 0, vede il retro
+   ══════════════════════════════════════════════════════════════════ */
+
+export function renderPosteriore(
+  canvas: HTMLCanvasElement,
+  P: SceneParams,
+  meta: RenderMeta,
+  basePlate: boolean,
+): void {
+  const { scene } = buildLedwallScene(P, basePlate);
+  const b = sceneBounds(P);
+  const pad = 0.3;
+
+  const sceneW = b.xMax - b.xMin + 2 * pad;
+  const sceneH = b.yMax - b.yMin + 2 * pad;
+  const cx = (b.xMin + b.xMax) / 2;
+  const cy = (b.yMin + b.yMax) / 2;
+
+  const cam = new THREE.OrthographicCamera(
+    -sceneW / 2, sceneW / 2, sceneH / 2, -sceneH / 2, 0.1, 50,
+  );
+  cam.position.set(cx, cy, 20);
+  cam.lookAt(cx, cy, 0);
+
+  const { ctx, ox, oy, renderH, scale } = setupRender(canvas, scene, cam, sceneW, sceneH);
+
+  const toX = (wx: number) => ox + (wx - b.xMin + pad) * scale;
+  const toY = (wy: number) => oy + (b.yMax + pad - wy) * scale;
+  const bottomY = oy + renderH;
+  const hTot = P.BOT_BAR + P.LED_H;
+
+  drawDimension(ctx, toX(0), bottomY, toX(P.LED_W), bottomY, toMm(P.LED_W), true, { offset: 40 });
+  drawDimension(ctx, toX(0), toY(hTot), toX(0), toY(0), toMm(hTot), false, { offset: 50 });
+
+  if (P.BOT_BAR > 0) {
+    drawDimension(ctx, toX(0), toY(hTot), toX(0), toY(P.BOT_BAR), toMm(P.LED_H), false, {
+      offset: 100, font: F_DIM_SM, color: C_ACCENT,
+    });
+    drawDimension(ctx, toX(0), toY(P.BOT_BAR), toX(0), toY(0), toMm(P.BOT_BAR), false, {
+      offset: 100, font: F_DIM_SM, color: "#666",
+    });
+  }
+
+  if (P.LEG_X.length >= 2) {
+    const x1 = toX(P.LEG_X[0]);
+    const x2 = toX(P.LEG_X[P.LEG_X.length - 1]);
+    drawDimension(ctx, x1, bottomY + 30, x2, bottomY + 30,
+      toMm(P.LEG_X[P.LEG_X.length - 1] - P.LEG_X[0]), true,
+      { offset: 40, font: F_DIM_SM, color: C_ACCENT },
+    );
+    ctx.strokeStyle = "#cc4444";
+    ctx.lineWidth = 1;
+    P.LEG_X.forEach((lx) => {
+      const px = toX(lx);
+      ctx.beginPath();
+      ctx.moveTo(px, bottomY + 2);
+      ctx.lineTo(px, bottomY + 18);
+      ctx.stroke();
+    });
+  }
+
+  drawPageHeader(ctx, "VISTA POSTERIORE", meta.projectName || "Progetto");
+  drawDataPanel(ctx, W - MARGIN - 400, 80, 400, meta, "VISTA POSTERIORE");
+  drawTitleBlock(ctx, meta, "VISTA POSTERIORE");
+  drawBorderFrame(ctx);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RENDER: VISTA LATERALE (looking from left side along +X)
+   Camera X = world +Z, Camera Y = world +Y
    ══════════════════════════════════════════════════════════════════ */
 
 export function renderLaterale(
@@ -603,89 +692,48 @@ export function renderLaterale(
   meta: RenderMeta,
   basePlate: boolean,
 ): void {
-  canvas.width = W;
-  canvas.height = H;
-
   const { scene } = buildLedwallScene(P, basePlate);
-  const depth = P.Z_TB + (P.LEG_ARM || 0);
+  const b = sceneBounds(P);
+  const pad = 0.3;
+  const depth = b.zMax;
+
+  const sceneW = b.zMax - b.zMin + 2 * pad;
+  const sceneH = b.yMax - b.yMin + 2 * pad;
+  const cz = (b.zMin + b.zMax) / 2;
+  const cy = (b.yMin + b.yMax) / 2;
+
+  const cam = new THREE.OrthographicCamera(
+    -sceneW / 2, sceneW / 2, sceneH / 2, -sceneH / 2, 0.1, 100,
+  );
+  cam.position.set(-30, cy, cz);
+  cam.lookAt(0, cy, cz);
+
+  const { ctx, ox, oy, renderH, scale } = setupRender(canvas, scene, cam, sceneW, sceneH);
+
+  const toZ = (wz: number) => ox + (wz - b.zMin + pad) * scale;
+  const toY = (wy: number) => oy + (b.yMax + pad - wy) * scale;
+  const bottomY = oy + renderH;
   const hTot = P.BOT_BAR + P.LED_H;
 
-  const drawAreaW = W - 2 * MARGIN - 440;
-  const drawAreaH = H - 200;
+  drawDimension(ctx, toZ(0), bottomY, toZ(depth), bottomY, toMm(depth), true, { offset: 40 });
+  drawDimension(ctx, toZ(0), toY(hTot), toZ(0), toY(0), toMm(hTot), false, { offset: 50 });
 
-  const scaleX = drawAreaW / depth;
-  const scaleY = drawAreaH / hTot;
-  const scale = Math.min(scaleX, scaleY) * 0.82;
-
-  const renderW = Math.floor(depth * scale);
-  const renderH = Math.floor(hTot * scale);
-  const ox = MARGIN + 60;
-  const oy = 80 + (drawAreaH - renderH) / 2 + 40;
-
-  const pad = 0.2;
-  const orthoCam = new THREE.OrthographicCamera(
-    -pad, depth + pad,
-    hTot + pad, -pad,
-    0.1, 50,
-  );
-  orthoCam.position.set(P.LED_W / 2 + 30, hTot / 2, depth / 2);
-  orthoCam.lookAt(P.LED_W / 2, hTot / 2, depth / 2);
-
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true, alpha: false, preserveDrawingBuffer: true,
-  });
-  renderer.setSize(renderW, renderH);
-  renderer.setClearColor(0xf0f2f5);
-  renderer.render(scene, orthoCam);
-
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = C_BG;
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.12)";
-  ctx.shadowBlur = 12;
-  ctx.shadowOffsetX = 2;
-  ctx.shadowOffsetY = 2;
-  ctx.drawImage(renderer.domElement, ox, oy, renderW, renderH);
-  ctx.restore();
-
-  ctx.strokeStyle = C_BORDER;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(ox, oy, renderW, renderH);
-
-  disposeScene(scene, renderer);
-
-  const bottomY = oy + renderH;
-
-  // Width dimension (depth)
-  drawDimension(ctx, ox, bottomY, ox + renderW, bottomY, toMm(depth), true, { offset: 40 });
-
-  // Height dimension
-  drawDimension(ctx, ox, oy, ox, bottomY, toMm(hTot), false, { offset: 50 });
-
-  // LED depth sub-dimension
-  const ledDepthPx = P.CAB_D * scale;
+  const ledDepthPx = (toZ(P.CAB_D) - toZ(0));
   if (ledDepthPx > 30) {
-    drawDimension(ctx, ox, bottomY + 30, ox + ledDepthPx, bottomY + 30, toMm(P.CAB_D), true, {
+    drawDimension(ctx, toZ(0), bottomY + 30, toZ(P.CAB_D), bottomY + 30, toMm(P.CAB_D), true, {
       offset: 40, font: F_DIM_SM, color: C_ACCENT,
     });
   }
 
-  // Truss depth sub-dimension
-  const zTfPx = P.Z_TF * scale;
-  const zTbPx = P.Z_TB * scale;
-  if (zTbPx - zTfPx > 20) {
-    drawDimension(ctx, ox + zTfPx, bottomY + 30, ox + zTbPx, bottomY + 30,
+  if (P.Z_TB - P.Z_TF > 0.05) {
+    drawDimension(ctx, toZ(P.Z_TF), bottomY + 30, toZ(P.Z_TB), bottomY + 30,
       toMm(P.Z_TB - P.Z_TF), true,
       { offset: 80, font: F_DIM_SM, color: "#666" },
     );
   }
 
-  // LED height + bottom bar
   if (P.BOT_BAR > 0) {
-    const ledBotY = oy + P.LED_H * scale;
-    drawDimension(ctx, ox, oy, ox, ledBotY, toMm(P.LED_H), false, {
+    drawDimension(ctx, toZ(0), toY(hTot), toZ(0), toY(P.BOT_BAR), toMm(P.LED_H), false, {
       offset: 100, font: F_DIM_SM, color: C_ACCENT,
     });
   }
@@ -697,7 +745,8 @@ export function renderLaterale(
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   RENDER: VISTA PIANTA (top view)
+   RENDER: VISTA PIANTA (looking down along -Y)
+   camera.up = (0,0,-1) → Camera X = world +X, Camera Y = world -Z
    ══════════════════════════════════════════════════════════════════ */
 
 export function renderPianta(
@@ -706,81 +755,42 @@ export function renderPianta(
   meta: RenderMeta,
   basePlate: boolean,
 ): void {
-  canvas.width = W;
-  canvas.height = H;
-
   const { scene } = buildLedwallScene(P, basePlate);
-  const depth = P.Z_TB + (P.LEG_ARM || 0);
+  const b = sceneBounds(P);
+  const pad = 0.3;
+  const depth = b.zMax;
 
-  const drawAreaW = W - 2 * MARGIN - 440;
-  const drawAreaH = H - 200;
+  const sceneW = b.xMax - b.xMin + 2 * pad;
+  const sceneH = b.zMax - b.zMin + 2 * pad;
+  const cx = (b.xMin + b.xMax) / 2;
+  const cz = (b.zMin + b.zMax) / 2;
 
-  const scaleX = drawAreaW / P.LED_W;
-  const scaleY = drawAreaH / depth;
-  const scale = Math.min(scaleX, scaleY) * 0.82;
-
-  const renderW = Math.floor(P.LED_W * scale);
-  const renderH = Math.floor(depth * scale);
-  const ox = MARGIN + 60;
-  const oy = 80 + (drawAreaH - renderH) / 2 + 40;
-
-  const pad = 0.2;
-  const orthoCam = new THREE.OrthographicCamera(
-    -pad, P.LED_W + pad,
-    depth + pad, -pad,
-    0.1, 50,
+  const cam = new THREE.OrthographicCamera(
+    -sceneW / 2, sceneW / 2, sceneH / 2, -sceneH / 2, 0.1, 100,
   );
-  orthoCam.position.set(P.LED_W / 2, 30, depth / 2);
-  orthoCam.lookAt(P.LED_W / 2, 0, depth / 2);
+  cam.up.set(0, 0, -1);
+  cam.position.set(cx, 30, cz);
+  cam.lookAt(cx, 0, cz);
 
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true, alpha: false, preserveDrawingBuffer: true,
-  });
-  renderer.setSize(renderW, renderH);
-  renderer.setClearColor(0xf0f2f5);
-  renderer.render(scene, orthoCam);
+  const { ctx, ox, oy, renderH, scale } = setupRender(canvas, scene, cam, sceneW, sceneH);
 
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = C_BG;
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.12)";
-  ctx.shadowBlur = 12;
-  ctx.shadowOffsetX = 2;
-  ctx.shadowOffsetY = 2;
-  ctx.drawImage(renderer.domElement, ox, oy, renderW, renderH);
-  ctx.restore();
-
-  ctx.strokeStyle = C_BORDER;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(ox, oy, renderW, renderH);
-
-  disposeScene(scene, renderer);
-
-  const s = scale;
+  const toX = (wx: number) => ox + (wx - b.xMin + pad) * scale;
   const bottomY = oy + renderH;
 
-  // Width
-  drawDimension(ctx, ox, bottomY, ox + renderW, bottomY, toMm(P.LED_W), true, { offset: 40 });
+  drawDimension(ctx, toX(0), bottomY, toX(P.LED_W), bottomY, toMm(P.LED_W), true, { offset: 40 });
+  drawDimension(ctx, toX(0), oy, toX(0), bottomY, toMm(depth), false, { offset: 50 });
 
-  // Depth
-  drawDimension(ctx, ox, oy, ox, bottomY, toMm(depth), false, { offset: 50 });
-
-  // Leg positions
   if (P.LEG_X.length >= 2) {
-    const x1 = ox + P.LEG_X[0] * s;
-    const x2 = ox + P.LEG_X[P.LEG_X.length - 1] * s;
+    const x1 = toX(P.LEG_X[0]);
+    const x2 = toX(P.LEG_X[P.LEG_X.length - 1]);
     drawDimension(ctx, x1, bottomY + 30, x2, bottomY + 30,
       toMm(P.LEG_X[P.LEG_X.length - 1] - P.LEG_X[0]), true,
       { offset: 40, font: F_DIM_SM, color: C_ACCENT },
     );
-
-    // Tick marks for individual legs
     ctx.strokeStyle = "#cc4444";
     ctx.lineWidth = 1;
     P.LEG_X.forEach((lx) => {
-      const px = ox + lx * s;
+      const px = toX(lx);
       ctx.beginPath();
       ctx.moveTo(px, bottomY + 2);
       ctx.lineTo(px, bottomY + 18);
