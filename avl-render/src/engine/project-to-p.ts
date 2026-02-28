@@ -15,7 +15,8 @@ export function projectToP(project: Project) {
   const isFlat = spec?.isFlat ?? false;
   const trussDepth = isFlat ? QX : QX_DEPTH;
   const Z_LED_BACK = led.tileDepth_mm / 1000;
-  const Z_GAP = 0.15;
+  // Senza tubi: montaggio diretto con aliscaf+distanziatore, retro LED a 21cm da americana
+  const Z_GAP = structure.horizontalTubes.count === 0 ? 0.21 : 0.15;
   const Z_TF = Z_LED_BACK + Z_GAP;
   const Z_TC = Z_TF + trussDepth / 2;
   const Z_TB = Z_TF + trussDepth;
@@ -42,8 +43,9 @@ export function projectToP(project: Project) {
     QX,
     QX_DEPTH,
     IS_FLAT: isFlat,
-    BASE_PLATE_W: (spec?.basePlateWidth_mm ?? 330) / 1000,
-    BASE_PLATE_D: (spec?.basePlateDepth_mm ?? 480) / 1000,
+    BASE_PLATE_W: (spec?.basePlateWidth_mm ?? 320) / 1000,
+    BASE_PLATE_D: (spec?.basePlateDepth_mm ?? 740) / 1000,
+    BASE_PLATE_INSET: (spec?.basePlateInset_mm ?? 70) / 1000,
     CHORD_R: structure.trussChordDia_mm / 2000,
     DIAG_R: structure.trussDiagDia_mm / 2000,
     Z_LED_BACK,

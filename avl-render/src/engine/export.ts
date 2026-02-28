@@ -72,7 +72,7 @@ function buildPScript(project: Project): string {
         LEG_X: [${p.LEG_X.join(", ")}],
         LEG_H: ${p.LEG_H}, LEG_ARM: ${LEG_ARM},
         QX: ${p.QX}, QX_DEPTH: ${p.QX_DEPTH ?? p.QX}, TRUSS_DEPTH: ${trussDepth}, IS_FLAT: ${p.IS_FLAT ?? false},
-        BASE_PLATE_W: ${p.BASE_PLATE_W ?? 0.33}, BASE_PLATE_D: ${p.BASE_PLATE_D ?? 0.48},
+        BASE_PLATE_W: ${p.BASE_PLATE_W ?? 0.32}, BASE_PLATE_D: ${p.BASE_PLATE_D ?? 0.74}, BASE_PLATE_INSET: ${p.BASE_PLATE_INSET ?? 0.07},
         CHORD_R: ${p.CHORD_R}, DIAG_R: ${p.DIAG_R},
         Z_LED_BACK: ${p.Z_LED_BACK}, Z_GAP: ${p.Z_GAP},
         TUBE_R: ${p.TUBE_R},
@@ -239,6 +239,7 @@ function generateTechnicalPngs(
     Z_TC: Z_TF + trussDepth / 2,
     BASE_PLATE_W: p.BASE_PLATE_W,
     BASE_PLATE_D: p.BASE_PLATE_D,
+    BASE_PLATE_INSET: p.BASE_PLATE_INSET,
   };
 
   const basePlate = project.structure.legs?.basePlate ?? true;

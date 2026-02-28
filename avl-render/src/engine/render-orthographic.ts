@@ -481,13 +481,17 @@ function sceneBounds(P: SceneParams) {
   const qh = P.QH ?? P.QX / 2;
   const legXMin = P.LEG_X.length > 0 ? Math.min(...P.LEG_X) - qh : 0;
   const legXMax = P.LEG_X.length > 0 ? Math.max(...P.LEG_X) + qh : P.LED_W;
+  // La base plate può estendersi oltre Z_TB + LEG_ARM
+  const bpInset = P.BASE_PLATE_INSET ?? 0.07;
+  const bpD = P.BASE_PLATE_D ?? 0.74;
+  const bpBackEdge = P.LEG_X.length > 0 ? P.Z_TF - bpInset + bpD : 0;
   return {
     xMin: Math.min(0, legXMin),
     xMax: Math.max(P.LED_W, legXMax),
     yMin: 0,
     yMax: Math.max(P.BOT_BAR + P.LED_H, P.LEG_H),
     zMin: 0,
-    zMax: P.Z_TB + (P.LEG_ARM || 0),
+    zMax: Math.max(P.Z_TB + (P.LEG_ARM || 0), bpBackEdge),
   };
 }
 

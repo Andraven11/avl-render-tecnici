@@ -23,8 +23,11 @@ Apri http://localhost:1420
 ## Export
 
 1. Clicca **EXPORT HTML + PNG** → scarica `AVL_[Progetto]_viewer.html`
-2. Apri il file nel browser
+2. Apri il file nel browser (desktop o mobile)
 3. Usa i pulsanti ⬇ PNG sotto ogni disegno per scaricare i PNG
+
+### Mobile
+Il viewer HTML esportato è **responsive**: su smartphone il pannello dati è collassabile, il 3D supporta touch (1 dito = rotazione, 2 dita = zoom), i disegni supportano pinch-to-zoom.
 
 ## Build
 

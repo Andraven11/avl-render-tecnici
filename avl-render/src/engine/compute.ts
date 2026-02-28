@@ -72,7 +72,9 @@ export function computeValues(
   const spec = TRUSS_DB[structure.trussModel];
   const trussDepth = spec?.isFlat ? structure.trussSection_mm : (structure.trussSectionDepth_mm ?? structure.trussSection_mm);
   const armLen = spec?.isFlat ? 0 : (structure.legs?.armLength_mm ?? 0);
-  const totalDepth_mm = led.tileDepth_mm + 150 + trussDepth + armLen;
+  // Senza tubi: montaggio diretto, gap 210mm; con tubi: gap 150mm
+  const gapMm = structure.horizontalTubes.count === 0 ? 210 : 150;
+  const totalDepth_mm = led.tileDepth_mm + gapMm + trussDepth + armLen;
 
   const powerConsumption_W = totalTiles * 150;
   const powerAmps_16A = Math.ceil(powerConsumption_W / (230 * 16 * 0.85));

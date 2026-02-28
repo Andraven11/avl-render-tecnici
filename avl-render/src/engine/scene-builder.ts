@@ -30,6 +30,7 @@ export interface SceneParams {
   Z_TUBE: number;
   BASE_PLATE_W?: number;
   BASE_PLATE_D?: number;
+  BASE_PLATE_INSET?: number;
 }
 
 export function buildLedwallScene(
@@ -178,7 +179,11 @@ export function buildLedwallScene(
       ([x, y]) => cyl(P.CHORD_R, P.LEG_ARM, MAT.chord, x, y, zAM, "z")
     );
     if (basePlate) {
-      bx(P.QX + 0.04, 0.015, P.LEG_ARM + 0.06, MAT.base, lx, 0.008, zAM);
+      const bpW = P.BASE_PLATE_W ?? 0.32;
+      const bpD = P.BASE_PLATE_D ?? 0.74;
+      const bpInset = P.BASE_PLATE_INSET ?? 0.07;
+      const bpCenterZ = P.Z_TF - bpInset + bpD / 2;
+      bx(bpW, 0.015, bpD, MAT.base, lx, 0.008, bpCenterZ);
     }
   }
 
@@ -190,9 +195,11 @@ export function buildLedwallScene(
     const xL = lx - halfW;
     const xR = lx + halfW;
     if (basePlate) {
-      const bpW = P.BASE_PLATE_W ?? 0.5;
-      const bpD = P.BASE_PLATE_D ?? 0.7;
-      bx(bpW, 0.02, bpD, MAT.plateBlack, lx, 0.01, (zF + zB) / 2);
+      const bpW = P.BASE_PLATE_W ?? 0.32;
+      const bpD = P.BASE_PLATE_D ?? 0.74;
+      const bpInset = P.BASE_PLATE_INSET ?? 0.07;
+      const bpCenterZ = P.Z_TF - bpInset + bpD / 2;
+      bx(bpW, 0.02, bpD, MAT.plateBlack, lx, 0.01, bpCenterZ);
     }
     [[xL, zF], [xR, zF], [xL, zB], [xR, zB]].forEach(([x, z]) =>
       cyl(P.CHORD_R, y1, MAT.chord, x, y1 / 2, z)
@@ -242,6 +249,24 @@ export function buildLedwallScene(
       P.TUBE_Y.forEach((ty) => {
         bx(0.065, 0.065, 0.1, MAT.clamp, lx, ty, P.Z_TUBE);
         bx(0.065, 0.065, 0.1, MAT.clamp, lx, ty, P.Z_TUBE - 0.06);
+      });
+    });
+  }
+
+  // Montaggio diretto con aliscaf + distanziatore (quando tubi = 0)
+  if (P.LEG_X.length > 0 && P.TUBE_Y.length === 0) {
+    const spacerLen = P.Z_TF - P.CAB_D;
+    const spacerCenterZ = P.CAB_D + spacerLen / 2;
+    // Due distanziatori per gamba: a 1/3 e 2/3 dell'altezza LED
+    const spacerYPositions = [P.BOT_BAR + P.LED_H * 0.33, P.BOT_BAR + P.LED_H * 0.67];
+    P.LEG_X.forEach((lx) => {
+      spacerYPositions.forEach((sy) => {
+        // Distanziatore (barra cilindrica)
+        cyl(0.02, spacerLen, MAT.bar, lx, sy, spacerCenterZ, "z");
+        // Aliscaf lato truss
+        bx(0.07, 0.07, 0.08, MAT.clamp, lx, sy, P.Z_TF);
+        // Aliscaf lato LED
+        bx(0.07, 0.07, 0.06, MAT.clamp, lx, sy, P.CAB_D + 0.03);
       });
     });
   }

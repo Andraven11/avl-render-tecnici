@@ -231,11 +231,173 @@
       border-top: 1px solid #30363d;
       text-align: right;
     }
+
+    /* ─── Mobile toggle (hidden on desktop) ─── */
+    .mobile-panel-toggle {
+      display: none;
+    }
+
+    /* ══════════════════════════════════════════
+       MOBILE RESPONSIVE — max-width: 768px
+       Nessuna modifica al layout desktop sopra.
+       ══════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      body {
+        height: auto;
+        overflow: auto;
+      }
+
+      .layout {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      /* ─── Pannello sinistro → blocco in alto collassabile ─── */
+      #panel-left {
+        width: 100%;
+        max-height: none;
+        border-right: none;
+        border-bottom: 1px solid #30363d;
+        padding: 12px 16px;
+        overflow: visible;
+      }
+
+      #panel-left.collapsed {
+        display: none;
+      }
+
+      /* ─── Toggle button ─── */
+      .mobile-panel-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 12px 16px;
+        background: #161b22;
+        border: none;
+        border-bottom: 1px solid #30363d;
+        color: #58a6ff;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        letter-spacing: 0.5px;
+      }
+
+      .mobile-panel-toggle .toggle-arrow {
+        font-size: 12px;
+        transition: transform 0.2s;
+      }
+
+      .mobile-panel-toggle.open .toggle-arrow {
+        transform: rotate(180deg);
+      }
+
+      /* ─── Area principale ─── */
+      .main {
+        min-width: 0;
+        flex: none;
+      }
+
+      /* ─── 3D viewer ─── */
+      #view3d-section {
+        height: 35vh;
+        min-height: 200px;
+        max-height: 320px;
+      }
+
+      /* ─── Tabs ─── */
+      .tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tabs button {
+        padding: 10px 12px;
+        font-size: 12px;
+        white-space: nowrap;
+        min-width: 0;
+      }
+
+      /* ─── View header (titolo + azioni) ─── */
+      .view-header {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 12px;
+      }
+
+      .view-header .view-title {
+        font-size: 13px;
+        flex: 1 1 100%;
+      }
+
+      .view-header .view-actions {
+        flex: 1 1 100%;
+        justify-content: space-between;
+      }
+
+      /* ─── Bottoni più grandi per touch ─── */
+      .btn-download {
+        padding: 10px 16px;
+        font-size: 13px;
+      }
+
+      .zoom-controls button {
+        width: 40px;
+        height: 36px;
+        font-size: 18px;
+      }
+
+      /* ─── Drawing area ─── */
+      .drawing-wrap {
+        padding: 8px;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .drawing-wrap img {
+        max-width: 100%;
+        touch-action: manipulation;
+      }
+
+      /* ─── Footer ─── */
+      .footer {
+        text-align: center;
+        padding: 8px 12px;
+      }
+    }
+
+    /* ─── Schermi molto piccoli (< 400px) ─── */
+    @media (max-width: 400px) {
+      #panel-left {
+        font-size: 11px;
+        padding: 10px 12px;
+      }
+
+      #panel-left h2 {
+        font-size: 13px;
+      }
+
+      .tabs button {
+        padding: 8px 10px;
+        font-size: 11px;
+      }
+
+      #view3d-section {
+        height: 30vh;
+        min-height: 180px;
+        max-height: 260px;
+      }
+    }
   </style>
 </head>
 
 <body>
   <div class="layout">
+    <button class="mobile-panel-toggle open" id="btn-toggle-panel" aria-label="Toggle dati tecnici">
+      <span>▸ DATI TECNICI</span>
+      <span class="toggle-arrow">▲</span>
+    </button>
     <div id="panel-left">
       <h2>▸ DATI TECNICI</h2>
       <span class="lbl">Progetto: </span><span class="val">—</span><br>
@@ -338,7 +500,7 @@
       LEG_X: [0.5, 2.5, 5, 7.5, 9.5],
       LEG_H: 2, LEG_ARM: 0.42,
       QX: 0.29, QX_DEPTH: 0.29, TRUSS_DEPTH: 0.29, IS_FLAT: false,
-      BASE_PLATE_W: 0.33, BASE_PLATE_D: 0.48,
+      BASE_PLATE_W: 0.32, BASE_PLATE_D: 0.74, BASE_PLATE_INSET: 0.07,
       CHORD_R: 0.025, DIAG_R: 0.009,
       Z_LED_BACK: 0.08, Z_GAP: 0.15,
       TUBE_R: 0.025,
@@ -390,6 +552,23 @@
         img.style.transform = 'scale(' + zoom + ')';
       });
     });
+
+    /* ─── Mobile: toggle pannello dati tecnici ─── */
+    (function () {
+      var btn = document.getElementById('btn-toggle-panel');
+      var panel = document.getElementById('panel-left');
+      if (!btn || !panel) return;
+      btn.addEventListener('click', function () {
+        var isOpen = btn.classList.contains('open');
+        if (isOpen) {
+          panel.classList.add('collapsed');
+          btn.classList.remove('open');
+        } else {
+          panel.classList.remove('collapsed');
+          btn.classList.add('open');
+        }
+      });
+    })();
 
     /* ─── 3D scene ─── */
     (function () {
@@ -496,12 +675,21 @@
           [[lx - QH, P.CHORD_R], [lx + QH, P.CHORD_R], [lx - QH, P.QX - P.CHORD_R], [lx + QH, P.QX - P.CHORD_R]].forEach(function (v) {
             cyl(P.CHORD_R, P.LEG_ARM, MAT.chord, v[0], v[1], zAM, 'z');
           });
-          bx(P.QX + 0.04, 0.015, P.LEG_ARM + 0.06, MAT.base, lx, 0.008, zAM);
+          var bpW = P.BASE_PLATE_W || 0.32;
+          var bpD = P.BASE_PLATE_D || 0.74;
+          var bpInset = P.BASE_PLATE_INSET || 0.07;
+          var bpCenterZ = P.Z_TF - bpInset + bpD / 2;
+          bx(bpW, 0.015, bpD, MAT.base, lx, 0.008, bpCenterZ);
         }
 
         function makeLegFX30(lx) {
           var y1 = P.LEG_H, halfW = P.QX_DEPTH / 2, zF = P.Z_TF, zB = P.Z_TB;
           var xL = lx - halfW, xR = lx + halfW;
+          var bpW_f = P.BASE_PLATE_W || 0.32;
+          var bpD_f = P.BASE_PLATE_D || 0.74;
+          var bpInset_f = P.BASE_PLATE_INSET || 0.07;
+          var bpCenterZ_f = P.Z_TF - bpInset_f + bpD_f / 2;
+          bx(bpW_f, 0.02, bpD_f, MAT.base, lx, 0.01, bpCenterZ_f);
           [[xL, zF], [xR, zF], [xL, zB], [xR, zB]].forEach(function (v) { cyl(P.CHORD_R, y1, MAT.chord, v[0], y1 / 2, v[1]); });
           var bays = 4, bH = y1 / bays, diagPts = [];
           for (var i = 0; i < bays; i++) {
@@ -540,6 +728,20 @@
           });
         }
 
+        // Montaggio diretto con aliscaf + distanziatore (quando tubi = 0)
+        if (P.LEG_X.length > 0 && P.TUBE_Y.length === 0) {
+          var spacerLen = P.Z_TF - P.CAB_D;
+          var spacerCenterZ = P.CAB_D + spacerLen / 2;
+          var spacerYPositions = [P.BOT_BAR + P.LED_H * 0.33, P.BOT_BAR + P.LED_H * 0.67];
+          P.LEG_X.forEach(function (lx) {
+            spacerYPositions.forEach(function (sy) {
+              cyl(0.02, spacerLen, MAT.bar, lx, sy, spacerCenterZ, 'z');
+              bx(0.07, 0.07, 0.08, MAT.clamp, lx, sy, P.Z_TF);
+              bx(0.07, 0.07, 0.06, MAT.clamp, lx, sy, P.CAB_D + 0.03);
+            });
+          });
+        }
+
         var tgt = new THREE.Vector3(P.LED_W / 2, (P.BOT_BAR + P.LED_H) / 2, zC);
         var wallDiag = Math.sqrt(P.LED_W * P.LED_W + (P.BOT_BAR + P.LED_H) * (P.BOT_BAR + P.LED_H));
         var fovRad = camera.fov * Math.PI / 180;
@@ -572,6 +774,43 @@
           cam();
         });
 
+        /* ─── Touch support per 3D (mobile) ─── */
+        var touchState = { active: false, prev: { x: 0, y: 0 }, pinchDist: 0 };
+        function getTouchDist(e) {
+          var dx = e.touches[0].clientX - e.touches[1].clientX;
+          var dy = e.touches[0].clientY - e.touches[1].clientY;
+          return Math.sqrt(dx * dx + dy * dy);
+        }
+        container.addEventListener('touchstart', function (e) {
+          if (e.touches.length === 1) {
+            touchState.active = true;
+            touchState.prev = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            e.preventDefault();
+          } else if (e.touches.length === 2) {
+            touchState.pinchDist = getTouchDist(e);
+            e.preventDefault();
+          }
+        }, { passive: false });
+        container.addEventListener('touchmove', function (e) {
+          if (e.touches.length === 1 && touchState.active) {
+            var dx = (e.touches[0].clientX - touchState.prev.x) * 0.005;
+            var dy = (e.touches[0].clientY - touchState.prev.y) * 0.005;
+            sph.theta -= dx;
+            sph.phi = Math.max(0.05, Math.min(Math.PI - 0.05, sph.phi + dy));
+            touchState.prev = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            cam();
+            e.preventDefault();
+          } else if (e.touches.length === 2) {
+            var dist = getTouchDist(e);
+            var delta = touchState.pinchDist - dist;
+            sph.r = Math.max(1.5, Math.min(22, sph.r + delta * 0.02));
+            touchState.pinchDist = dist;
+            cam();
+            e.preventDefault();
+          }
+        }, { passive: false });
+        container.addEventListener('touchend', function () { touchState.active = false; });
+
         (function animate() { requestAnimationFrame(animate); renderer.render(scene, camera); })();
 
         new ResizeObserver(function () {
@@ -586,6 +825,38 @@
 
       if (document.readyState === 'complete') { boot(); }
       else { window.addEventListener('load', boot); }
+    })();
+
+    /* ─── Touch pinch-to-zoom per disegni tecnici (mobile) ─── */
+    (function () {
+      var wraps = document.querySelectorAll('.drawing-wrap');
+      wraps.forEach(function (wrap) {
+        var img = wrap.querySelector('img');
+        if (!img) return;
+        var pinchDist = 0;
+        wrap.addEventListener('touchstart', function (e) {
+          if (e.touches.length === 2) {
+            var dx = e.touches[0].clientX - e.touches[1].clientX;
+            var dy = e.touches[0].clientY - e.touches[1].clientY;
+            pinchDist = Math.sqrt(dx * dx + dy * dy);
+            e.preventDefault();
+          }
+        }, { passive: false });
+        wrap.addEventListener('touchmove', function (e) {
+          if (e.touches.length === 2 && pinchDist > 0) {
+            var dx = e.touches[0].clientX - e.touches[1].clientX;
+            var dy = e.touches[0].clientY - e.touches[1].clientY;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            var scale = dist / pinchDist;
+            var zoom = parseFloat(img.dataset.zoom || '1');
+            var newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom * scale));
+            img.dataset.zoom = String(newZoom);
+            img.style.transform = 'scale(' + newZoom + ')';
+            pinchDist = dist;
+            e.preventDefault();
+          }
+        }, { passive: false });
+      });
     })();
   </script>
 </body>

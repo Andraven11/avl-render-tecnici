@@ -10,6 +10,8 @@ export interface TrussSpec {
   isFlat: boolean;
   basePlateWidth_mm: number;
   basePlateDepth_mm: number;
+  /** Offset dal bordo interno (lato LED) della piastra alla faccia frontale del truss (mm) */
+  basePlateInset_mm: number;
   /** Portata distribuita (kg) — span 3m / 5m / 10m — fonte LITEC */
   loadCapacity_kg?: { span3m: number; span5m: number; span10m: number };
 }
@@ -23,8 +25,9 @@ export const TRUSS_DB: Record<TrussModel, TrussSpec> = {
     weight_kg_m: 5.3,
     label: "LITEC QX30SA (Americana)",
     isFlat: false,
-    basePlateWidth_mm: 330,
-    basePlateDepth_mm: 480,
+    basePlateWidth_mm: 320,
+    basePlateDepth_mm: 740,
+    basePlateInset_mm: 70,
     loadCapacity_kg: { span3m: 2473, span5m: 1750, span10m: 834 },
   },
   FX30: {
@@ -35,7 +38,8 @@ export const TRUSS_DB: Record<TrussModel, TrussSpec> = {
     weight_kg_m: 2.8,
     label: "Prolyte FX30 (Piatta/Ladder)",
     isFlat: true,
-    basePlateWidth_mm: 500,
-    basePlateDepth_mm: 700,
+    basePlateWidth_mm: 320,
+    basePlateDepth_mm: 740,
+    basePlateInset_mm: 70,
   },
 };

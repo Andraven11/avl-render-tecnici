@@ -304,12 +304,30 @@ totalWeight = ledWeight + trussWeight + tubeWeight + clampWeight + 20kg (hardwar
 
 ### 5.5 Profondità totale
 
+**Con tubi orizzontali (standard):**
 ```
 Z: 0 ────► fronte LED
-   80 ───► retro cabinet
+   80 ───► retro cabinet (CAB_D)
    230 ──► fronte truss  (80 + 150 gap)
    520 ──► retro truss   (230 + 290 QX30)
    940 ──► fine braccio L (520 + 420 braccio)
+```
+
+**Senza tubi (montaggio diretto con aliscaf + distanziatore):**
+```
+Z: 0 ────► fronte LED
+   80 ───► retro cabinet (CAB_D)
+   290 ──► fronte truss  (80 + 210 gap — retro LED a 21cm da americana)
+   580 ──► retro truss   (290 + 290 QX30)
+  1000 ──► fine braccio L (580 + 420 braccio)
+```
+
+**Base plate (per entrambi i tipi):**
+```
+La base plate 740×320 mm è posizionata con il bordo anteriore
+a basePlateInset (70mm) DAVANTI al fronte truss:
+  bpFront = Z_TF - 70mm
+  bpBack  = Z_TF - 70mm + 740mm
 ```
 
 ---
@@ -411,6 +429,7 @@ Parametri: raggio, angolo apertura. I cabinet vengono inclinati su giunti angola
 | Peso | ~5.3 kg/m |
 | Connessione | QXFC quick-fit, QXSM10 bulloni |
 | **Portata distribuita** | 3 m: 2473 kg · 5 m: 1750 kg · 10 m: 834 kg |
+| Base plate | 740 × 320 mm, inset 70mm |
 | Colore render 3D | `#607090` (corde), `#455a64` (diag) |
 | Fonte | litectruss.com QX30SA |
 
@@ -423,6 +442,7 @@ Parametri: raggio, angolo apertura. I cabinet vengono inclinati su giunti angola
 | Diagonali | Ø20 × 2 mm |
 | Passo bracing | 500 mm |
 | Peso | ~2.8 kg/m |
+| Base plate | 740 × 320 mm, inset 70mm |
 | Colore render 3D | `#708090` (corde), `#556070` (diag) |
 | Note | Usata per bracci orizzontali leggeri |
 
@@ -602,8 +622,10 @@ avl-render/
 │   │   ├── compute.ts             ← Calcoli (maxLegs, gambe, pesi, ris.)
 │   │   ├── pitch-db.ts            ← Risoluzioni pixel per pitch (Uniview/NovaStar)
 │   │   ├── export.ts               ← Export cartella (HTML + 4 PNG, dialog)
-│   │   ├── project-to-p.ts         ← Conversione Project → parametri viewer
-│   │   └── truss-db.ts             ← Database specifiche truss (QX30, FX30)
+│   │   ├── project-to-p.ts         ← Conversione Project → parametri viewer (Z_GAP, BASE_PLATE_INSET)
+│   │   ├── scene-builder.ts        ← Costruzione scena Three.js (base plate inset, aliscaf/distanziatore)
+│   │   ├── render-orthographic.ts   ← Render PNG 2D quotati (sceneBounds con base plate)
+│   │   └── truss-db.ts             ← Database specifiche truss (QX30, FX30, basePlateInset)
 │   │
 │   ├── hooks/
 │   │   └── useDebouncedCallback.ts ← Hook debounce (disponibile)
