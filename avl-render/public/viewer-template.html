@@ -812,7 +812,14 @@
         }, { passive: false });
         container.addEventListener('touchend', function () { touchState.active = false; });
 
-        (function animate() { requestAnimationFrame(animate); renderer.render(scene, camera); })();
+        // Render-on-demand: renderizza solo quando la scena cambia (interazione utente / resize)
+        var needsRender = true;
+        var origCam = cam;
+        cam = function () { origCam(); needsRender = true; };
+        (function animate() {
+          requestAnimationFrame(animate);
+          if (needsRender) { renderer.render(scene, camera); needsRender = false; }
+        })();
 
         new ResizeObserver(function () {
           var nr = container.getBoundingClientRect();
@@ -821,6 +828,7 @@
           camera.aspect = nW / nH;
           camera.updateProjectionMatrix();
           renderer.setSize(nW, nH);
+          needsRender = true;
         }).observe(container);
       }
 

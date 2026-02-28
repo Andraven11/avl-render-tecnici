@@ -91,7 +91,7 @@ function drawDimension(
   y2: number,
   value: string,
   isHorizontal: boolean,
-  opts?: { font?: string; offset?: number; color?: string },
+  opts?: { font?: string; offset?: number; color?: string; side?: "left" | "right" | "top" | "bottom" },
 ) {
   const font = opts?.font ?? F_DIM;
   const offset = opts?.offset ?? DIM_OFFSET;
@@ -103,17 +103,19 @@ function drawDimension(
   ctx.font = font;
 
   if (isHorizontal) {
-    const y = Math.max(y1, y2) + offset;
+    const above = opts?.side === "top";
+    const y = above ? Math.min(y1, y2) - offset : Math.max(y1, y2) + offset;
+    const extDir = above ? -1 : 1;
     // Extension lines
     ctx.save();
     ctx.strokeStyle = C_EXT_LINE;
     ctx.lineWidth = 0.8;
     ctx.setLineDash([4, 3]);
     ctx.beginPath();
-    ctx.moveTo(x1, y1 + 4);
-    ctx.lineTo(x1, y + 6);
-    ctx.moveTo(x2, y2 + 4);
-    ctx.lineTo(x2, y + 6);
+    ctx.moveTo(x1, y1 + extDir * 4);
+    ctx.lineTo(x1, y + extDir * 6);
+    ctx.moveTo(x2, y2 + extDir * 4);
+    ctx.lineTo(x2, y + extDir * 6);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.restore();
@@ -135,7 +137,7 @@ function drawDimension(
     ctx.font = font;
     const tw = ctx.measureText(value).width;
     const tx = (x1 + x2) / 2;
-    const ty = y - 8;
+    const ty = above ? y + 8 : y - 8;
     ctx.fillStyle = C_BG;
     ctx.fillRect(tx - tw / 2 - 4, ty - 14, tw + 8, 20);
     ctx.fillStyle = color;
@@ -143,17 +145,19 @@ function drawDimension(
     ctx.textBaseline = "middle";
     ctx.fillText(value, tx, ty - 3);
   } else {
-    const x = Math.min(x1, x2) - offset;
+    const right = opts?.side === "right";
+    const x = right ? Math.max(x1, x2) + offset : Math.min(x1, x2) - offset;
+    const extDir = right ? 1 : -1;
     // Extension lines
     ctx.save();
     ctx.strokeStyle = C_EXT_LINE;
     ctx.lineWidth = 0.8;
     ctx.setLineDash([4, 3]);
     ctx.beginPath();
-    ctx.moveTo(x1 - 4, y1);
-    ctx.lineTo(x - 6, y1);
-    ctx.moveTo(x2 - 4, y2);
-    ctx.lineTo(x - 6, y2);
+    ctx.moveTo(x1 + extDir * 4, y1);
+    ctx.lineTo(x + extDir * 6, y1);
+    ctx.moveTo(x2 + extDir * 4, y2);
+    ctx.lineTo(x + extDir * 6, y2);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.restore();
@@ -176,8 +180,10 @@ function drawDimension(
     const midY = (y1 + y2) / 2;
     ctx.font = font;
     const tw = ctx.measureText(value).width;
-    ctx.translate(x - 10, midY);
-    ctx.rotate(-Math.PI / 2);
+    const textOff = right ? 10 : -10;
+    const textRot = right ? Math.PI / 2 : -Math.PI / 2;
+    ctx.translate(x + textOff, midY);
+    ctx.rotate(textRot);
     ctx.fillStyle = C_BG;
     ctx.fillRect(-tw / 2 - 4, -12, tw + 8, 20);
     ctx.fillStyle = color;
@@ -309,7 +315,8 @@ function drawDataPanel(
     cy += hdrH + 4;
 
     // Rows
-    for (const [label, val] of sec.rows) {
+    for (let ri = 0; ri < sec.rows.length; ri++) {
+      const [label, val] = sec.rows[ri];
       ctx.fillStyle = "#555555";
       ctx.font = F_LABEL;
       ctx.textAlign = "left";
@@ -321,8 +328,8 @@ function drawDataPanel(
       ctx.textAlign = "right";
       ctx.fillText(val, x + panelW - padX, cy + lineH / 2);
 
-      // Subtle separator line
-      if (sec.rows.indexOf([label, val] as any) < sec.rows.length - 1) {
+      // Subtle separator line (not after last row)
+      if (ri < sec.rows.length - 1) {
         ctx.strokeStyle = "#e0e4e8";
         ctx.lineWidth = 0.5;
         ctx.beginPath();
@@ -456,21 +463,26 @@ function toMm(v: number): string {
   return Math.round(v * 1000).toLocaleString("it-IT") + " mm";
 }
 
-function disposeScene(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
-  renderer.dispose();
+/** Rilascia geometrie e materiali della scena (senza renderer). */
+export function disposeSceneGeometry(scene: THREE.Scene) {
   scene.traverse((o) => {
     if (o instanceof THREE.Mesh) {
       o.geometry?.dispose();
-      if (Array.isArray(o.material)) {
-        o.material.forEach((m) => m.dispose());
-      } else if (o.material) {
-        o.material.dispose();
-      }
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach((m) => { if (m) m.dispose(); });
     }
     if (o instanceof THREE.LineSegments) {
       o.geometry?.dispose();
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach((m) => { if (m) m.dispose(); });
     }
   });
+}
+
+function disposeScene(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
+  renderer.dispose();
+  renderer.forceContextLoss();
+  disposeSceneGeometry(scene);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -505,6 +517,7 @@ function setupRender(
   cam: THREE.OrthographicCamera,
   sceneW: number,
   sceneH: number,
+  keepScene = false,
 ) {
   canvas.width = W;
   canvas.height = H;
@@ -544,7 +557,13 @@ function setupRender(
   ctx.lineWidth = 1;
   ctx.strokeRect(ox, oy, renderW, renderH);
 
-  disposeScene(scene, renderer);
+  // Se keepScene, libera solo il renderer WebGL (la scena sarà riusata)
+  if (keepScene) {
+    renderer.dispose();
+    renderer.forceContextLoss();
+  } else {
+    disposeScene(scene, renderer);
+  }
 
   return { ctx, ox, oy, renderW, renderH, scale };
 }
@@ -559,8 +578,10 @@ export function renderFrontale(
   P: SceneParams,
   meta: RenderMeta,
   basePlate: boolean,
+  prebuiltScene?: THREE.Scene,
 ): void {
-  const { scene } = buildLedwallScene(P, basePlate);
+  const shared = !!prebuiltScene;
+  const scene = prebuiltScene ?? buildLedwallScene(P, basePlate).scene;
   const pad = 0.3;
   const sceneW = P.LED_W + 2 * pad;
   const sceneH = P.BOT_BAR + P.LED_H + 2 * pad;
@@ -573,7 +594,7 @@ export function renderFrontale(
   cam.position.set(cx, cy, -5);
   cam.lookAt(cx, cy, 0);
 
-  const { ctx, ox, oy, renderH, scale } = setupRender(canvas, scene, cam, sceneW, sceneH);
+  const { ctx, ox, oy, renderH, scale } = setupRender(canvas, scene, cam, sceneW, sceneH, shared);
 
   const toX = (wx: number) => ox + (wx + pad) * scale;
   const toY = (wy: number) => oy + (P.BOT_BAR + P.LED_H + pad - wy) * scale;
@@ -608,6 +629,30 @@ export function renderFrontale(
       ctx.lineTo(px, bottomY + 18);
       ctx.stroke();
     });
+    // Spaziature singole gambe (se > 2 gambe)
+    if (P.LEG_X.length > 2) {
+      for (let i = 0; i < P.LEG_X.length - 1; i++) {
+        const xa = toX(P.LEG_X[i]);
+        const xb = toX(P.LEG_X[i + 1]);
+        drawDimension(ctx, xa, bottomY + 80, xb, bottomY + 80,
+          toMm(P.LEG_X[i + 1] - P.LEG_X[i]), true,
+          { offset: 30, font: F_DIM_SM, color: "#999" },
+        );
+      }
+    }
+  }
+
+  // Piastra base larghezza
+  if (basePlate && P.LEG_X.length > 0) {
+    const bpW = P.BASE_PLATE_W ?? 0.32;
+    P.LEG_X.forEach((lx) => {
+      const px1 = toX(lx - bpW / 2);
+      const px2 = toX(lx + bpW / 2);
+      drawDimension(ctx, px1, bottomY + 30, px2, bottomY + 30,
+        toMm(bpW), true,
+        { offset: 80, font: F_DIM_SM, color: "#888" },
+      );
+    });
   }
 
   drawPageHeader(ctx, "VISTA FRONTALE", meta.projectName || "Progetto");
@@ -626,8 +671,10 @@ export function renderPosteriore(
   P: SceneParams,
   meta: RenderMeta,
   basePlate: boolean,
+  prebuiltScene?: THREE.Scene,
 ): void {
-  const { scene } = buildLedwallScene(P, basePlate);
+  const shared = !!prebuiltScene;
+  const scene = prebuiltScene ?? buildLedwallScene(P, basePlate).scene;
   const b = sceneBounds(P);
   const pad = 0.3;
 
@@ -642,7 +689,7 @@ export function renderPosteriore(
   cam.position.set(cx, cy, 20);
   cam.lookAt(cx, cy, 0);
 
-  const { ctx, ox, oy, renderH, scale } = setupRender(canvas, scene, cam, sceneW, sceneH);
+  const { ctx, ox, oy, renderH, scale } = setupRender(canvas, scene, cam, sceneW, sceneH, shared);
 
   const toX = (wx: number) => ox + (wx - b.xMin + pad) * scale;
   const toY = (wy: number) => oy + (b.yMax + pad - wy) * scale;
@@ -677,6 +724,47 @@ export function renderPosteriore(
       ctx.lineTo(px, bottomY + 18);
       ctx.stroke();
     });
+    // Spaziature singole gambe (se > 2 gambe)
+    if (P.LEG_X.length > 2) {
+      for (let i = 0; i < P.LEG_X.length - 1; i++) {
+        const xa = toX(P.LEG_X[i]);
+        const xb = toX(P.LEG_X[i + 1]);
+        drawDimension(ctx, xa, bottomY + 80, xb, bottomY + 80,
+          toMm(P.LEG_X[i + 1] - P.LEG_X[i]), true,
+          { offset: 30, font: F_DIM_SM, color: "#999" },
+        );
+      }
+    }
+  }
+
+  // Piastra base larghezza
+  if (basePlate && P.LEG_X.length > 0) {
+    const bpW = P.BASE_PLATE_W ?? 0.32;
+    P.LEG_X.forEach((lx) => {
+      const px1 = toX(lx - bpW / 2);
+      const px2 = toX(lx + bpW / 2);
+      drawDimension(ctx, px1, bottomY + 30, px2, bottomY + 30,
+        toMm(bpW), true,
+        { offset: 80, font: F_DIM_SM, color: "#888" },
+      );
+    });
+  }
+
+  // Altezza gamba (lato destro)
+  if (P.LEG_X.length > 0 && P.LEG_H > 0) {
+    const rightX = toX(Math.max(...P.LEG_X));
+    drawDimension(ctx, rightX, toY(P.LEG_H), rightX, toY(0), toMm(P.LEG_H), false, {
+      offset: 40, side: "right", font: F_DIM_SM, color: "#888",
+    });
+  }
+
+  // Sezione truss (lato destro)
+  if (P.LEG_X.length > 0) {
+    const rightX = toX(Math.max(...P.LEG_X));
+    const trussSection = P.IS_FLAT ? P.QX : (P.QX_DEPTH ?? P.QX);
+    drawDimension(ctx, rightX, toY(P.LEG_H), rightX, toY(P.LEG_H - trussSection), toMm(trussSection), false, {
+      offset: 90, side: "right", font: F_DIM_SM, color: "#666",
+    });
   }
 
   drawPageHeader(ctx, "VISTA POSTERIORE", meta.projectName || "Progetto");
@@ -695,11 +783,12 @@ export function renderLaterale(
   P: SceneParams,
   meta: RenderMeta,
   basePlate: boolean,
+  prebuiltScene?: THREE.Scene,
 ): void {
-  const { scene } = buildLedwallScene(P, basePlate);
+  const shared = !!prebuiltScene;
+  const scene = prebuiltScene ?? buildLedwallScene(P, basePlate).scene;
   const b = sceneBounds(P);
   const pad = 0.3;
-  const depth = b.zMax;
 
   const sceneW = b.zMax - b.zMin + 2 * pad;
   const sceneH = b.yMax - b.yMin + 2 * pad;
@@ -712,16 +801,18 @@ export function renderLaterale(
   cam.position.set(-30, cy, cz);
   cam.lookAt(0, cy, cz);
 
-  const { ctx, ox, oy, renderH, scale } = setupRender(canvas, scene, cam, sceneW, sceneH);
+  const { ctx, ox, oy, renderH, scale } = setupRender(canvas, scene, cam, sceneW, sceneH, shared);
 
   const toZ = (wz: number) => ox + (wz - b.zMin + pad) * scale;
   const toY = (wy: number) => oy + (b.yMax + pad - wy) * scale;
   const bottomY = oy + renderH;
   const hTot = P.BOT_BAR + P.LED_H;
 
-  drawDimension(ctx, toZ(0), bottomY, toZ(depth), bottomY, toMm(depth), true, { offset: 40 });
-  drawDimension(ctx, toZ(0), toY(hTot), toZ(0), toY(0), toMm(hTot), false, { offset: 50 });
+  // ── Quote orizzontali (sotto) ──
+  // Profondità totale
+  drawDimension(ctx, toZ(0), bottomY, toZ(b.zMax), bottomY, toMm(b.zMax), true, { offset: 40 });
 
+  // LED depth
   const ledDepthPx = (toZ(P.CAB_D) - toZ(0));
   if (ledDepthPx > 30) {
     drawDimension(ctx, toZ(0), bottomY + 30, toZ(P.CAB_D), bottomY + 30, toMm(P.CAB_D), true, {
@@ -729,16 +820,70 @@ export function renderLaterale(
     });
   }
 
-  if (P.Z_TB - P.Z_TF > 0.05) {
-    drawDimension(ctx, toZ(P.Z_TF), bottomY + 30, toZ(P.Z_TB), bottomY + 30,
-      toMm(P.Z_TB - P.Z_TF), true,
-      { offset: 80, font: F_DIM_SM, color: "#666" },
+  // Gap LED→Truss
+  const gapVal = P.Z_TF - P.CAB_D;
+  if (gapVal > 0.03) {
+    drawDimension(ctx, toZ(P.CAB_D), bottomY + 30, toZ(P.Z_TF), bottomY + 30,
+      toMm(gapVal), true,
+      { offset: 80, font: F_DIM_SM, color: "#cc6600" },
     );
   }
 
+  // Sezione truss
+  if (P.Z_TB - P.Z_TF > 0.05) {
+    drawDimension(ctx, toZ(P.Z_TF), bottomY + 30, toZ(P.Z_TB), bottomY + 30,
+      toMm(P.Z_TB - P.Z_TF), true,
+      { offset: 120, font: F_DIM_SM, color: "#666" },
+    );
+  }
+
+  // Braccio gamba (arm)
+  if (P.LEG_ARM > 0) {
+    drawDimension(ctx, toZ(P.Z_TB), bottomY + 30, toZ(P.Z_TB + P.LEG_ARM), bottomY + 30,
+      toMm(P.LEG_ARM), true,
+      { offset: 160, font: F_DIM_SM, color: "#888" },
+    );
+  }
+
+  // Piastra base profondità + inset
+  if (basePlate && P.LEG_X.length > 0) {
+    const bpInset = P.BASE_PLATE_INSET ?? 0.07;
+    const bpD = P.BASE_PLATE_D ?? 0.74;
+    const bpFrontZ = P.Z_TF - bpInset;
+    const bpBackZ = bpFrontZ + bpD;
+    drawDimension(ctx, toZ(bpFrontZ), bottomY + 30, toZ(bpBackZ), bottomY + 30,
+      toMm(bpD), true,
+      { offset: 200, font: F_DIM_SM, color: "#888" },
+    );
+    // Inset
+    if (bpInset > 0.01) {
+      drawDimension(ctx, toZ(bpFrontZ), bottomY + 30, toZ(P.Z_TF), bottomY + 30,
+        toMm(bpInset), true,
+        { offset: 240, font: F_DIM_SM, color: "#aaa" },
+      );
+    }
+  }
+
+  // ── Quote verticali (sinistra) ──
+  // Altezza totale LED+bar
+  drawDimension(ctx, toZ(0), toY(hTot), toZ(0), toY(0), toMm(hTot), false, { offset: 50 });
+
+  // LED height (se c'è bottom bar)
   if (P.BOT_BAR > 0) {
     drawDimension(ctx, toZ(0), toY(hTot), toZ(0), toY(P.BOT_BAR), toMm(P.LED_H), false, {
       offset: 100, font: F_DIM_SM, color: C_ACCENT,
+    });
+    drawDimension(ctx, toZ(0), toY(P.BOT_BAR), toZ(0), toY(0), toMm(P.BOT_BAR), false, {
+      offset: 100, font: F_DIM_SM, color: "#666",
+    });
+  }
+
+  // ── Quote verticali (destra) ──
+  const rightZ = toZ(b.zMax);
+  // Altezza gamba
+  if (P.LEG_X.length > 0 && P.LEG_H > 0) {
+    drawDimension(ctx, rightZ, toY(P.LEG_H), rightZ, toY(0), toMm(P.LEG_H), false, {
+      offset: 40, side: "right", font: F_DIM_SM, color: "#888",
     });
   }
 
@@ -758,11 +903,12 @@ export function renderPianta(
   P: SceneParams,
   meta: RenderMeta,
   basePlate: boolean,
+  prebuiltScene?: THREE.Scene,
 ): void {
-  const { scene } = buildLedwallScene(P, basePlate);
+  const shared = !!prebuiltScene;
+  const scene = prebuiltScene ?? buildLedwallScene(P, basePlate).scene;
   const b = sceneBounds(P);
   const pad = 0.3;
-  const depth = b.zMax;
 
   const sceneW = b.xMax - b.xMin + 2 * pad;
   const sceneH = b.zMax - b.zMin + 2 * pad;
@@ -776,14 +922,17 @@ export function renderPianta(
   cam.position.set(cx, 30, cz);
   cam.lookAt(cx, 0, cz);
 
-  const { ctx, ox, oy, renderH, scale } = setupRender(canvas, scene, cam, sceneW, sceneH);
+  const { ctx, ox, oy, renderH, scale } = setupRender(canvas, scene, cam, sceneW, sceneH, shared);
 
   const toX = (wx: number) => ox + (wx - b.xMin + pad) * scale;
+  const toZp = (wz: number) => oy + (wz - b.zMin + pad) * scale;
   const bottomY = oy + renderH;
 
+  // ── Quote orizzontali (sotto) ──
+  // Larghezza LED
   drawDimension(ctx, toX(0), bottomY, toX(P.LED_W), bottomY, toMm(P.LED_W), true, { offset: 40 });
-  drawDimension(ctx, toX(0), oy, toX(0), bottomY, toMm(depth), false, { offset: 50 });
 
+  // Interasse gambe
   if (P.LEG_X.length >= 2) {
     const x1 = toX(P.LEG_X[0]);
     const x2 = toX(P.LEG_X[P.LEG_X.length - 1]);
@@ -799,6 +948,52 @@ export function renderPianta(
       ctx.moveTo(px, bottomY + 2);
       ctx.lineTo(px, bottomY + 18);
       ctx.stroke();
+    });
+  }
+
+  // Piastra base larghezza (sotto 1ᵃ gamba)
+  if (basePlate && P.LEG_X.length > 0) {
+    const bpW = P.BASE_PLATE_W ?? 0.32;
+    const lx0 = P.LEG_X[0];
+    drawDimension(ctx, toX(lx0 - bpW / 2), bottomY + 30, toX(lx0 + bpW / 2), bottomY + 30,
+      toMm(bpW), true,
+      { offset: 90, font: F_DIM_SM, color: "#888" },
+    );
+  }
+
+  // ── Quote verticali (sinistra) — profondità totale ──
+  drawDimension(ctx, toX(0), oy, toX(0), bottomY, toMm(b.zMax), false, { offset: 50 });
+
+  // ── Quote verticali (destra) — breakdown profondità ──
+  const rx = toX(P.LED_W);
+  // LED depth
+  drawDimension(ctx, rx, toZp(0), rx, toZp(P.CAB_D), toMm(P.CAB_D), false, {
+    offset: 40, side: "right", font: F_DIM_SM, color: C_ACCENT,
+  });
+
+  // Gap LED→Truss
+  const gapVal = P.Z_TF - P.CAB_D;
+  if (gapVal > 0.03) {
+    drawDimension(ctx, rx, toZp(P.CAB_D), rx, toZp(P.Z_TF), toMm(gapVal), false, {
+      offset: 40, side: "right", font: F_DIM_SM, color: "#cc6600",
+    });
+  }
+
+  // Sezione truss
+  if (P.Z_TB - P.Z_TF > 0.05) {
+    drawDimension(ctx, rx, toZp(P.Z_TF), rx, toZp(P.Z_TB), toMm(P.Z_TB - P.Z_TF), false, {
+      offset: 40, side: "right", font: F_DIM_SM, color: "#666",
+    });
+  }
+
+  // Piastra base profondità
+  if (basePlate && P.LEG_X.length > 0) {
+    const bpInset = P.BASE_PLATE_INSET ?? 0.07;
+    const bpD = P.BASE_PLATE_D ?? 0.74;
+    const bpFrontZ = P.Z_TF - bpInset;
+    const bpBackZ = bpFrontZ + bpD;
+    drawDimension(ctx, rx, toZp(bpFrontZ), rx, toZp(bpBackZ), toMm(bpD), false, {
+      offset: 90, side: "right", font: F_DIM_SM, color: "#888",
     });
   }
 

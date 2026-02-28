@@ -97,6 +97,21 @@ export function buildLedwallScene(
   dirLight2.position.set(-3, 4, -4);
   scene.add(dirLight2);
 
+  // Geometry cache — evita duplicati per cylinder/box con stessi parametri
+  const geoCache = new Map<string, THREE.BufferGeometry>();
+  function getCylGeo(r: number, h: number): THREE.CylinderGeometry {
+    const key = `c_${r}_${h}`;
+    let g = geoCache.get(key);
+    if (!g) { g = new THREE.CylinderGeometry(r, r, h, r > 0.02 ? 12 : 8); geoCache.set(key, g); }
+    return g as THREE.CylinderGeometry;
+  }
+  function getBoxGeo(w: number, h: number, d: number): THREE.BoxGeometry {
+    const key = `b_${w}_${h}_${d}`;
+    let g = geoCache.get(key);
+    if (!g) { g = new THREE.BoxGeometry(w, h, d); geoCache.set(key, g); }
+    return g as THREE.BoxGeometry;
+  }
+
   function cyl(
     r: number,
     h: number,
@@ -106,10 +121,7 @@ export function buildLedwallScene(
     z: number,
     axis = "y"
   ) {
-    const m = new THREE.Mesh(
-      new THREE.CylinderGeometry(r, r, h, r > 0.02 ? 12 : 8),
-      mat as THREE.MeshStandardMaterial
-    );
+    const m = new THREE.Mesh(getCylGeo(r, h), mat as THREE.MeshStandardMaterial);
     if (axis === "x") m.rotation.z = Math.PI / 2;
     if (axis === "z") m.rotation.x = Math.PI / 2;
     m.position.set(x, y, z);
@@ -125,10 +137,7 @@ export function buildLedwallScene(
     y: number,
     z: number
   ) {
-    const m = new THREE.Mesh(
-      new THREE.BoxGeometry(w, h, d),
-      mat as THREE.MeshStandardMaterial
-    );
+    const m = new THREE.Mesh(getBoxGeo(w, h, d), mat as THREE.MeshStandardMaterial);
     m.position.set(x, y, z);
     scene.add(m);
     return m;
@@ -224,16 +233,14 @@ export function buildLedwallScene(
     bx(P.LED_W, P.BOT_BAR, 0.12, MAT.bar, P.LED_W / 2, P.BOT_BAR / 2, 0);
   }
 
+  const cabEdgeGeo = new THREE.EdgesGeometry(getBoxGeo(P.CAB_W - 0.005, P.CAB_H - 0.005, P.CAB_D));
   for (let col = 0; col < P.CAB_COLS; col++) {
     for (let row = 0; row < P.CAB_ROWS; row++) {
       const x = P.CAB_W / 2 + col * P.CAB_W;
       const y = P.BOT_BAR + P.CAB_H / 2 + row * P.CAB_H;
       const mat = row < P.DEAD_ROWS || col < P.DEAD_COLS || col >= P.CAB_COLS - P.DEAD_COLS ? MAT.ledOFF : MAT.ledON;
       bx(P.CAB_W - 0.005, P.CAB_H - 0.005, P.CAB_D, mat, x, y, 0);
-      const fr = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.BoxGeometry(P.CAB_W - 0.005, P.CAB_H - 0.005, P.CAB_D)),
-        MAT.frame
-      );
+      const fr = new THREE.LineSegments(cabEdgeGeo, MAT.frame);
       fr.position.set(x, y, 0);
       scene.add(fr);
     }

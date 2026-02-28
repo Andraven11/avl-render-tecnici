@@ -80,14 +80,33 @@ export function computeValues(
   const powerAmps_16A = Math.ceil(powerConsumption_W / (230 * 16 * 0.85));
 
   const maxCabinetPerLinea = led.tileHeight_mm === 1000 ? 8 : 16;
-  const linee16A = Math.ceil(totalTiles / maxCabinetPerLinea);
   const wattPerLinea = 230 * 16 * 0.85;
-  const tileLabel = led.tileHeight_mm === 1000 ? "500×1000" : "500×500";
+
+  // Cablaggio S-pattern: serpentina orizzontale (riga pari L→R, dispari R→L)
+  const cabinetPerLine: number[] = [];
+  {
+    let countInLine = 0;
+    for (let row = 0; row < rows; row++) {
+      for (let c = 0; c < cols; c++) {
+        if (countInLine >= maxCabinetPerLinea) {
+          cabinetPerLine.push(countInLine);
+          countInLine = 0;
+        }
+        countInLine++;
+      }
+    }
+    if (countInLine > 0) cabinetPerLine.push(countInLine);
+  }
+  const linee16A_S = cabinetPerLine.length;
+  const finalLineCount = Math.max(powerAmps_16A, linee16A_S);
+
   const powerSchema: PowerSchema = {
-    linee16A: Math.max(powerAmps_16A, linee16A),
+    linee16A: finalLineCount,
     maxCabinetPerLinea,
     wattPerLinea: Math.round(wattPerLinea),
-    schema: `${Math.max(powerAmps_16A, linee16A)} linee 16A · max ${maxCabinetPerLinea} cabinet ${tileLabel}/linea`,
+    schema: `${finalLineCount} linee 16A · max ${maxCabinetPerLinea} cab/linea · cablaggio S`,
+    routing: "S",
+    cabinetPerLine,
   };
 
   const ctrl = CONTROLLER_DB[led.controller ?? "vx1000"];
@@ -99,7 +118,7 @@ export function computeValues(
     controllerCompatibile,
     pixelPerPorta: ctrl.pixelsPerPort,
     schema: controllerCompatibile
-      ? `${porteNecessarie} porte ethernet su ${ctrl.ethernetPorts} (${ctrl.label})`
+      ? `${porteNecessarie} porte su ${ctrl.ethernetPorts} (${ctrl.label}) · S/U libero`
       : `⚠ ${totalPixels.toLocaleString()} px > ${ctrl.maxPixels.toLocaleString()} px max (${ctrl.label})`,
   };
 

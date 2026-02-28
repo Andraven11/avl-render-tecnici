@@ -74,6 +74,8 @@ export interface PowerSchema {
   maxCabinetPerLinea: number;
   wattPerLinea: number;
   schema: string;
+  routing: "S" | "U";
+  cabinetPerLine: number[];
 }
 
 export interface NetworkSchema {

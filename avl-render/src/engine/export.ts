@@ -2,12 +2,13 @@ import type { Project } from "@/types/project";
 import { projectToP } from "./project-to-p";
 import { TRUSS_DB } from "./truss-db";
 import { CONTROLLER_DB } from "./controller-db";
-import { type SceneParams } from "./scene-builder";
+import { buildLedwallScene, type SceneParams } from "./scene-builder";
 import {
   renderFrontale,
   renderPosteriore,
   renderLaterale,
   renderPianta,
+  disposeSceneGeometry,
   type RenderMeta,
 } from "./render-orthographic";
 
@@ -244,19 +245,24 @@ function generateTechnicalPngs(
 
   const basePlate = project.structure.legs?.basePlate ?? true;
 
+  // Costruisci la scena una volta sola e condividila tra le 4 viste
+  const { scene } = buildLedwallScene(P, basePlate);
+
   const cvFront = document.createElement("canvas");
   const cvPost = document.createElement("canvas");
   const cvSide = document.createElement("canvas");
   const cvTop = document.createElement("canvas");
 
   try {
-    renderFrontale(cvFront, P, meta, basePlate);
-    renderPosteriore(cvPost, P, meta, basePlate);
-    renderLaterale(cvSide, P, meta, basePlate);
-    renderPianta(cvTop, P, meta, basePlate);
+    renderFrontale(cvFront, P, meta, basePlate, scene);
+    renderPosteriore(cvPost, P, meta, basePlate, scene);
+    renderLaterale(cvSide, P, meta, basePlate, scene);
+    renderPianta(cvTop, P, meta, basePlate, scene);
   } catch (e) {
     console.error("Errore generazione PNG:", e);
     throw new Error(`Render tecnico fallito: ${e instanceof Error ? e.message : String(e)}`);
+  } finally {
+    disposeSceneGeometry(scene);
   }
 
   return {
