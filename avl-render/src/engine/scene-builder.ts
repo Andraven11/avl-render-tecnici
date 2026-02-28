@@ -255,18 +255,19 @@ export function buildLedwallScene(
 
   // Montaggio diretto con aliscaf + distanziatore (quando tubi = 0)
   if (P.LEG_X.length > 0 && P.TUBE_Y.length === 0) {
-    const spacerLen = P.Z_TF - P.CAB_D;
-    const spacerCenterZ = P.CAB_D + spacerLen / 2;
+    const ledBackZ = P.CAB_D / 2; // faccia posteriore reale del box LED (centrato a z=0)
+    const spacerLen = P.Z_TF - ledBackZ;
+    const spacerCenterZ = ledBackZ + spacerLen / 2;
     // Due distanziatori per gamba: a 1/3 e 2/3 dell'altezza LED
     const spacerYPositions = [P.BOT_BAR + P.LED_H * 0.33, P.BOT_BAR + P.LED_H * 0.67];
     P.LEG_X.forEach((lx) => {
       spacerYPositions.forEach((sy) => {
-        // Distanziatore (barra cilindrica)
-        cyl(0.02, spacerLen, MAT.bar, lx, sy, spacerCenterZ, "z");
+        // Distanziatore (tubo Ø48 mm)
+        cyl(0.024, spacerLen, MAT.bar, lx, sy, spacerCenterZ, "z");
         // Aliscaf lato truss
         bx(0.07, 0.07, 0.08, MAT.clamp, lx, sy, P.Z_TF);
         // Aliscaf lato LED
-        bx(0.07, 0.07, 0.06, MAT.clamp, lx, sy, P.CAB_D + 0.03);
+        bx(0.07, 0.07, 0.06, MAT.clamp, lx, sy, ledBackZ);
       });
     });
   }

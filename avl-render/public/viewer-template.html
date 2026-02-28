@@ -730,14 +730,15 @@
 
         // Montaggio diretto con aliscaf + distanziatore (quando tubi = 0)
         if (P.LEG_X.length > 0 && P.TUBE_Y.length === 0) {
-          var spacerLen = P.Z_TF - P.CAB_D;
-          var spacerCenterZ = P.CAB_D + spacerLen / 2;
+          var ledBackZ = P.CAB_D / 2;
+          var spacerLen = P.Z_TF - ledBackZ;
+          var spacerCenterZ = ledBackZ + spacerLen / 2;
           var spacerYPositions = [P.BOT_BAR + P.LED_H * 0.33, P.BOT_BAR + P.LED_H * 0.67];
           P.LEG_X.forEach(function (lx) {
             spacerYPositions.forEach(function (sy) {
-              cyl(0.02, spacerLen, MAT.bar, lx, sy, spacerCenterZ, 'z');
+              cyl(0.024, spacerLen, MAT.bar, lx, sy, spacerCenterZ, 'z');
               bx(0.07, 0.07, 0.08, MAT.clamp, lx, sy, P.Z_TF);
-              bx(0.07, 0.07, 0.06, MAT.clamp, lx, sy, P.CAB_D + 0.03);
+              bx(0.07, 0.07, 0.06, MAT.clamp, lx, sy, ledBackZ);
             });
           });
         }
