@@ -2,6 +2,33 @@
 
 ## Modifiche recenti
 
+### Viste complete con quote + S-pattern corrente + performance (2026-02-28)
+
+**Quote complete su tutte le 4 viste (render-orthographic.ts):**
+- `drawDimension` esteso con opzione `side: "left"|"right"|"top"|"bottom"` per posizionare le quote su qualsiasi lato
+- **FRONTALE**: larghezza LED, altezza totale, bottom bar, piastra base 320mm sotto ogni gamba, interassi individuali gambe
+- **POSTERIORE**: stesse quote del frontale + altezza gamba (lato destro) + sezione truss (lato destro)
+- **LATERALE**: profondità totale, LED depth, gap LED→truss (arancione), sezione truss, braccio L, piastra base depth 740mm, inset 70mm, altezza gambe, breakdown altezze bottom bar + LED
+- **PIANTA**: larghezza LED, piastra base sotto 1ª gamba, breakdown profondità destra (LED, gap LED→truss, sezione truss, profondità base plate)
+
+**Cablaggio S-pattern (compute.ts, types/project.ts):**
+- Linee corrente calcolate con cablaggio serpentina orizzontale: riga pari L→R, riga dispari R→L
+- `PowerSchema` esteso con campi `routing: "S" | "U"` e `cabinetPerLine: number[]`
+- `NetworkSchema` aggiornato con "S/U libero" (ethernet può seguire qualsiasi percorso)
+- Testo schema: `"X linee 16A · max Y cab/linea · cablaggio S"`
+
+**Performance invisible (scene-builder.ts, render-orthographic.ts, export.ts, viewer-template.html):**
+- **Scena condivisa**: `buildLedwallScene` chiamata 1 volta invece di 4 per i 4 PNG; scene passata come `prebuiltScene?` opzionale a ciascuna render function
+- **Geometry cache**: `Map<string, BufferGeometry>` locale evita geometrie duplicate (cylinder/box/edges con stessi parametri riusano la stessa istanza)
+- **Render-on-demand viewer HTML**: loop `rAF` renderizza solo quando `needsRender=true` (settato da interazione utente o resize), non ogni frame
+
+**Bug fix:**
+- `drawDataPanel` separator: `indexOf([label, val] as any)` usava reference equality → sostituito con loop indicizzato
+- `disposeScene`: aggiunto `renderer.forceContextLoss()` e disposal esplicito materiali `LineSegments`
+- Aggiunto `disposeSceneGeometry()` esportata da `render-orthographic.ts` per cleanup scena condivisa
+
+---
+
 ### Mobile responsive export + misure base plate + montaggio diretto (2026-02-27)
 
 **Mobile responsive (viewer-template.html):**

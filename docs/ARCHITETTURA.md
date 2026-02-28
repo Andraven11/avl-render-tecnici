@@ -256,7 +256,21 @@ interface ComputedValues {
 
   // Potenza elettrica
   powerConsumption_W: number;    // totalTiles × 150W
-  powerAmps_16A: number;         // linee da 16A necessarie
+  powerAmps_16A: number;         // linee da 16A necessarie (minimo per amperaggio)
+  powerSchema?: {
+    linee16A: number;            // numero finale linee (max di amperaggio e S-pattern)
+    maxCabinetPerLinea: number;  // 16 (500×500) o 8 (500×1000)
+    wattPerLinea: number;        // 230 × 16 × 0.85
+    schema: string;              // "X linee 16A · max Y cab/linea · cablaggio S"
+    routing: "S" | "U";         // sempre "S" (serpentina orizzontale)
+    cabinetPerLine: number[];    // cabinet per ogni linea [16, 16, 14, ...]
+  };
+  networkSchema?: {
+    porte: number;
+    disponibili: number;
+    controller: string;
+    schema: string;              // "X porte su Y (label) · S/U libero"
+  };
 
   // Trasporto
   flightCases: number;           // stima numero case
@@ -469,8 +483,13 @@ Risoluzioni per mattonella — fonti Uniview UR/AS (ledwallcentral.com):
 
 ### Schema corrente e rete (computed)
 
-- **Corrente:** N linee 16A — max 16 cabinet 500×500/linea, max 8 cabinet 500×1000/linea
+- **Corrente — S-pattern (regola fondamentale):**
+  - Cablaggio **solo orizzontale a serpentina**: riga pari L→R, riga dispari R→L
+  - Cablaggio a "U" (verticale) **non consentito**
+  - Max 16 cabinet/linea (500×500) o 8 cabinet/linea (500×1000)
+  - Numero linee = `max(linee_per_amperaggio, linee_S_pattern)`
 - **Rete:** 650k px/porta @8bit (A10s Plus-N), porte necessarie vs disponibili
+  - Ethernet può seguire qualsiasi percorso (S o U, libero)
 
 ---
 
@@ -725,9 +744,12 @@ npm run smoke       # Smoke test (build completo)
 - **Validazione loadProject:** `validateProject()` in project-store valida JSON caricato e fa merge con default
 - **XSS export:** `escapeHtml()` su nome progetto e campi utente nell'export HTML
 - **Memory leak fix:** Event listener window (mouseup, mousemove) rimossi nel cleanup; dispose di geometrie/materiali
-- **Render on-demand:** Animation loop renderizza solo quando necessario (camera, resize, progetto)
+- **Render on-demand:** Animation loop (app 3D e viewer HTML export) renderizza solo quando necessario (camera, resize, progetto). Viewer HTML usa flag `needsRender` settato da interazione utente.
 - **Input onBlur:** Campi numerici LedTab/StructureTab usano commit su blur/Enter per ridurre re-render
 - **Viewer3D:** Cabinet CAB_W/CAB_H per 500x1000, dead rows/cols, piastra base toggle, flying mode (wall senza gambe), ombre (floor + shadow map), camera auto-fit, ResizeObserver throttle 100ms
+- **Scena condivisa export PNG:** `buildLedwallScene` eseguita 1 volta, la scena Three.js è passata come argomento opzionale (`prebuiltScene?`) a ciascuna delle 4 render function. Risparmio: 3 build scena eliminati (~75% del tempo JavaScript di export).
+- **Geometry cache scene-builder:** `Map<string, BufferGeometry>` locale riusa geometrie identiche (CylinderGeometry/BoxGeometry/EdgesGeometry). I cabinet condividono la stessa EdgesGeometry per il wireframe.
+- **forceContextLoss + LineSegments disposal:** `disposeScene` ora chiama `renderer.forceContextLoss()` e dispone i materiali dei `LineSegments` (oltre ai `Mesh`). Aggiunta `disposeSceneGeometry()` esportata per cleanup separato dalla scena condivisa.
 
 ---
 
@@ -742,3 +764,5 @@ npm run smoke       # Smoke test (build completo)
 7. **I PNG sono ad alta risoluzione** — canvas renderizzati a 2× per retina
 8. **Il file progetto `.json` è reimportabile** — permette di riaprire e modificare
 9. **Tutti i colori seguono la palette standard** — vedi rules `disegno-tecnico-workflow.mdc`
+10. **Cablaggio corrente: SOLO S-pattern** — cablaggio orizzontale a serpentina; il cablaggio a "U" (verticale) non è ammesso fisicamente. Ethernet è libero (S o U).
+11. **Quote tecniche: tutte le 4 viste devono riportare le misure complete** — base plate, sezione truss, gap LED→truss, altezze, braccio L, interassi gambe
